@@ -16,5 +16,6 @@ mini_shell.o: mini_shell.cpp
 mini_shell: $(OBJECTS)
 	$(CC) $(CFLAGS) -o mini_shell $(OBJECTS)
 
+# DETECT IF THIS IS FILE IS THERE!!
 clean:
 	rm *.o mini_shell 
