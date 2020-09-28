@@ -23,20 +23,132 @@ const std::string SYS_TIME = "Sys time = ";
 const std::string PCB_COLUMNDS = "#    PID S SEC COMMAND\n";
 
 std::map<int, std::string> process_control_block;
-std::set<std::string> native_commands = {"exit",  "jobs",    "kill", "resume",
-                                         "sleep", "suspend", "wait"};
+const std::set<std::string> native_commands = {
+    "exit", "jobs", "kill", "resume", "sleep", "suspend", "wait"};
 
-bool IsNativeCommand(std::string command) {
-  return native_commands.find(command) != native_commands.end();
+enum native_commands_enum {
+  exit_command,
+  jobs_command,
+  kill_command,
+  resume_command,
+  sleep_command,
+  suspend_command,
+  wait_command
+};
+
+// std::vector<std::string> splitCommands(std::string const &user_input) {
+//   std::stringstream ss(user_input);
+//   std::istream_iterator<std::string> begin(ss);
+//   std::istream_iterator<std::string> end;
+//   std::vector<std::string> commands(begin, end);
+
+//   return commands;
+// }
+
+// TODO: move to another file
+void JobsCommand() {
+  char *args[2] = {(char *)"ps", NULL};
+  if (execvp(args[0], args) < 0) {
+    perror("exec error");
+    _exit(123);
+  }
 }
 
-std::vector<std::string> splitCommands(std::string const &user_input) {
-  std::stringstream ss(user_input);
-  std::istream_iterator<std::string> begin(ss);
-  std::istream_iterator<std::string> end;
-  std::vector<std::string> commands(begin, end);
+// TODO: move to another file
+void ExitCommand() {
+  for (auto entry : process_control_block) {
+    std::pair<int, std::string> process = entry;
+    int pid = process.first;
 
-  return commands;
+    kill(pid, SIGKILL);
+  }
+
+  int rc_id;
+  // TODO: change to wait_pid
+  wait(&rc_id);
+  // TODO: sys time
+  _exit(1);
+}
+
+// TODO: move to another file
+void KillCommand(int id) {
+  if (kill(id, SIGKILL) < 0) {
+    perror("kill failed");
+    _exit(1);
+  }
+}
+
+// TODO: move to another file
+void ResumeCommand(int id) {}
+
+// TODO: move to another file
+// TODO: this method may be applicable to multiple paths...
+void SleepCommand(char **args) { execvp(args[0], args); }
+
+// TODO: move to another file
+void SuspendCommand(int id) {}
+
+// TODO: move to another file
+void WaitCommand(int id) {  // change to wait_pid
+  wait(&id);
+}
+
+native_commands_enum ArgToEnum(std::string arg) {
+  static const std::map<std::string, native_commands_enum> command_to_enum{
+      {"exit", native_commands_enum::exit_command},
+      {"jobs", native_commands_enum::jobs_command},
+      {"kill", native_commands_enum::kill_command},
+      {"resume", native_commands_enum::resume_command},
+      {"sleep", native_commands_enum::sleep_command},
+      {"suspend", native_commands_enum::suspend_command},
+      {"wait", native_commands_enum::wait_command}};
+
+  return command_to_enum.at(arg);
+}
+
+void runNativeUserCommand(std::vector<std::string> const &commands) {
+  std::string arg1 = commands[0];
+
+  // TODO: idk if these native user commands will ever have more than 2 args...
+  char **args = getBasicArgs(commands);
+  switch (ArgToEnum(arg1)) {
+    case native_commands_enum::exit_command: {
+      printf("<------ RUNNING EXIT ------>");
+      ExitCommand();
+      break;
+    }
+    case native_commands_enum::sleep_command: {
+      printf("<------ RUNNING SLEEP ------>");
+      SleepCommand(args[1]);
+      break;
+    }
+    case native_commands_enum::jobs_command: {
+      printf("<------ RUNNING JOBS ------>");
+      JobsCommand();
+      break;
+    }
+    case native_commands_enum::kill_command: {
+      printf("<------ RUNNING KILL ------>");
+      KillCommand(atoi(args[1]));
+      break;
+    }
+    case native_commands_enum::resume_command: {
+      // ResumeCommand();
+      break;
+    }
+    case native_commands_enum::suspend_command: {
+      // ResumeCommand();
+      break;
+    }
+    case native_commands_enum::wait_command: {
+      // WaitCommand();
+      break;
+    }
+  }
+}
+
+bool isNativeCommand(std::string command) {
+  return native_commands.find(command) != native_commands.end();
 }
 
 std::vector<std::string> getUserInput() {
@@ -44,8 +156,12 @@ std::vector<std::string> getUserInput() {
 
   std::cout << "SHELL379: ";
   std::getline(std::cin, input);
+  std::stringstream ss(input);
+  std::istream_iterator<std::string> begin(ss);
+  std::istream_iterator<std::string> end;
+  std::vector<std::string> commands(begin, end);
 
-  return splitCommands(input);
+  return commands;
 }
 
 char **getBasicArgs(std::vector<std::string> const &commandList) {
@@ -68,96 +184,11 @@ char **getBasicArgs(std::vector<std::string> const &commandList) {
   return args;
 }
 
-// TODO: move to another file
-void jobs_command() {
-  char *args[2] = {(char *)"ps", NULL};
-  if (execvp(args[0], args) < 0) {
-    perror("exec error");
-    _exit(123);
-  }
-}
-
-// TODO: move to another file
-void exit_command() {
-  for (auto entry : process_control_block) {
-    std::pair<int, std::string> process = entry;
-    int pid = process.first;
-
-    kill(pid, SIGKILL);
-  }
-
-  int rc_id;
-  wait(&rc_id);
-  // TODO: sys time
-  _exit(1);
-}
-
-// TODO: move to another file
-void kill_command(int id) {
-  if (kill(id, SIGKILL) < 0) {
-    perror("kill failed");
-    _exit(1);
-  }
-}
-
-// TODO: move to another file
-void resume_command(int id) {}
-
-// TODO: move to another file
-void sleep_command(char **args) { execvp(args[0], args); }
-
-// TODO: move to another file
-void suspend_command(int id) {}
-
-// TODO: move to another file
-void wait_command(int id) {}
-
-// TODO: move to another file
-void runNativeCommands(std::vector<std::string> const &commands) {
-  char **args = getBasicArgs(commands);
-  // std::cout << "commands: " << args[0] << " " << args[1] << std::endl;
-
-  if (strcmp(args[0], "sleep") == 0) {
-    sleep_command(args);
-  } else if (strcmp(args[0], "exit") == 0) {
-    exit_command();
-  } else if (strcmp(args[0], "kill") == 0) {
-    kill_command(atoi(args[1]));
-  } else if (strcmp(args[0], "jobs") == 0) {
-    jobs_command();
-  }
-}
-
-void runCommands(std::vector<std::string> const &commands) {
-  if (strcmp(commands[0].c_str(), "exit") == 0) {
-    exit_command();
-  } else {
-    int pid = fork();
-    if (pid < 0) {
-      // fork failed
-      fprintf(stderr, "fork failed\n");  // TODO: should this be perror?
-    } else if (pid == 0) {
-      // child process
-      printf("INSIDE CHILD PROCESS\n");
-      // run routine for native commands
-      runNativeCommands(commands);
-
-    } else {
-      // parent
-      // TODO: PCB entry needs to take in whole command joined together
-      process_control_block.insert(
-          std::pair<int, std::string>(pid, commands[0]));
-      int rc_wait;
-      wait(&rc_wait);
-      std::cout << "parent process done waiting..." << std::endl;
-    }
-  }
-}
-
 // idk if i need to other signals....
 // void sigint_handler(int sig) {}
 
 int main() {
+  // TODO: idk where to put this...
   struct sigaction sa;
   sa.sa_handler = SIG_IGN;
   sa.sa_flags = 0;
@@ -169,10 +200,12 @@ int main() {
 
   while (1) {
     std::vector<std::string> user_input = getUserInput();
-
+    if (user_input.size() <= 0) {
+      continue;
+    }
     // TODO: eventually for non-native commands will need to validate with
-    if (IsNativeCommand(user_input.at(0))) {
-      runCommands(user_input);
+    if (isNativeCommand(user_input.at(0))) {
+      runNativeUserCommand(user_input);
     } else {
       std::cout << "not native command" << std::endl;
     }
