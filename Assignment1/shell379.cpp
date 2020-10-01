@@ -43,6 +43,19 @@ enum native_commands_enum {
   wait_command
 };
 
+native_commands_enum ArgToEnum(std::string arg) {
+  static const std::map<std::string, native_commands_enum> command_to_enum{
+      {"exit", native_commands_enum::exit_command},
+      {"jobs", native_commands_enum::jobs_command},
+      {"kill", native_commands_enum::kill_command},
+      {"resume", native_commands_enum::resume_command},
+      {"sleep", native_commands_enum::sleep_command},
+      {"suspend", native_commands_enum::suspend_command},
+      {"wait", native_commands_enum::wait_command}};
+
+  return command_to_enum.at(arg);
+}
+
 char **GetBasicArgs(std::vector<std::string> const &commandList) {
   // TODO: generalize so that args size is variable
   if (commandList.size() == 1) {
@@ -53,6 +66,8 @@ char **GetBasicArgs(std::vector<std::string> const &commandList) {
     return args;
   }
 
+  std::cout << "creating args as char**" << std::endl
+            << commandList[0] << std::endl;
   char *arg1 = new char[commandList[0].length() + 1];
   char *arg2 = new char[commandList[1].length() + 1];
   char **args = new char *[3];
@@ -72,26 +87,26 @@ std::vector<std::string> SplitString(std::string input) {
   return commands;
 }
 
-std::string FormatTimeToSeconds(std::string process_time) {
-  // [[DD-]hh:]mm:ss
-  size_t position = 0;
-  std::string substring;
-  std::string delimeter = ":";
-  std::vector<std::string> extracted_time;
-  int64_t time;
-  while ((position = process_time.find(delimeter)) != std::string::npos) {
-    substring = process_time.substr(0, position);
-    extracted_time.push_back(substring);
-    process_time.erase(0, position + delimeter.length());
-  }
+// std::string FormatTimeToSeconds(std::string process_time) {
+//   // [[DD-]hh:]mm:ss
+//   size_t position = 0;
+//   std::string substring;
+//   std::string delimeter = ":";
+//   std::vector<std::string> extracted_time;
+//   int64_t time;
+//   while ((position = process_time.find(delimeter)) != std::string::npos) {
+//     substring = process_time.substr(0, position);
+//     extracted_time.push_back(substring);
+//     process_time.erase(0, position + delimeter.length());
+//   }
 
-  for (auto t : extracted_time) {
-    std::cout << t << std::endl;
-    // time += atoi(t.c_str());
-  }
+//   for (auto t : extracted_time) {
+//     std::cout << t << std::endl;
+//     // time += atoi(t.c_str());
+//   }
 
-  return std::to_string(time);
-}
+//   return std::to_string(time);
+// }
 
 // TODO: move to another file
 void JobsCommand() {
@@ -128,12 +143,15 @@ void JobsCommand() {
       std::string time = ps_table[i + 2];
       // TODO: format time string
       // std::cout << time << std::endl;
-      std::string time1 = FormatTimeToSeconds(time);
+      // std::string time1 = FormatTimeToSeconds(time);
       // std::cout << time << std::endl;
+
       // only look at processes started by shell379
+      std::cout << "from ps: " << pid << std::endl;
       if (process_control_block.count(pid) == 1) {
+        std::cout << "PCB has: " << pid << std::endl << std::endl;
         // look for active processes
-        if (state == "R") {
+        if (state == "R") {  // TODO: need to just check if R is in there
           active_processes++;
         }
 
@@ -166,17 +184,23 @@ void JobsCommand() {
 
     // print jobs table
     std::cout << ss.str();
+    for (auto x : process_control_block) {
+      std::cout << "PCB entry: " << x.first << " " << x.second;
+    }
   }
 }
 
 // TODO: move to another file
 void ExitCommand() {
-  // TODO: do the time thing at end of exit
+  std::cout << "size of PCB: " << process_control_block.size() << std::endl;
   for (auto entry : process_control_block) {
     std::pair<int, std::string> process = entry;
     int pid = process.first;
+    std::cout << "kill processes " << pid << std::endl;
 
     kill(pid, SIGKILL);
+    int status;
+    waitpid(pid, &status, 0);
   }
 
   // TODO: VERIFY IF THIS WORKS...
@@ -190,9 +214,6 @@ void ExitCommand() {
      << SYS_TIME << sys_time << std::endl;
 
   std::cout << ss.str();
-  int rc_id;
-  // TODO: change to wait_pid
-  wait(&rc_id);
   _exit(1);
 }
 
@@ -202,44 +223,55 @@ void KillCommand(int id) {
     perror("kill failed");
     _exit(1);
   }
+  int status;
+  waitpid(id, &status, 0);
 }
 
 // TODO: move to another file
-void ResumeCommand(int id) { kill(id, SIGCONT); }
+void ResumeCommand(int id) {
+  if (kill(id, SIGCONT) < 0) {
+    perror("kill failed");
+    _exit(1);
+  }
+  int status;
+  waitpid(id, &status, 0);
+}
 
 // TODO: move to another file
-// TODO: this method may be applicable to multiple paths...
-// void SleepCommand(char **args) { execvp(args[0], args); }
-
-// TODO: move to another file
-void SuspendCommand(int id) { kill(id, SIGSTOP); }
+void SuspendCommand(int id) {
+  if (kill(id, SIGSTOP) < 0) {
+    perror("kill failed");
+    _exit(1);
+  }
+  int status;
+  waitpid(id, &status, 0);
+}
 
 // TODO: move to another file
 void WaitCommand(int id) {
   // TODO: change to wait_pid
-  wait(&id);
+  int status;
+  waitpid(id, &status, 0);
 }
 
-native_commands_enum ArgToEnum(std::string arg) {
-  static const std::map<std::string, native_commands_enum> command_to_enum{
-      {"exit", native_commands_enum::exit_command},
-      {"jobs", native_commands_enum::jobs_command},
-      {"kill", native_commands_enum::kill_command},
-      {"resume", native_commands_enum::resume_command},
-      {"sleep", native_commands_enum::sleep_command},
-      {"suspend", native_commands_enum::suspend_command},
-      {"wait", native_commands_enum::wait_command}};
+void SleepCommand() {}
 
-  return command_to_enum.at(arg);
-}
-
+// TODO: WHY IS SHELL379 DOUBLED????
 void RunBackgroundProcess(char **args) {
+  std::ostringstream ss1;
+  for (int i = 0; args[i] != NULL; ++i) {
+    ss1 << args[i] << " ";
+  }
+  std::cout << "\n RUNNING BACKGROUND PROCESS \n" << ss1.str() << std::endl;
   int pid = fork();
   if (pid < 0) {
     fprintf(stderr, "fork failed\n");
     exit(1);
   } else if (pid == 0) {
+    // TODO: ./runner -> for macOS !!! but in csugrad idk...
     execvp(args[0], args);
+    perror("child did not exit properly");
+    _exit(1);
   } else {
     // extract args from array and store as std::string
     std::ostringstream ss;
@@ -247,8 +279,6 @@ void RunBackgroundProcess(char **args) {
       ss << args[i] << " ";
     }
     process_control_block.insert(std::pair<int, std::string>(pid, ss.str()));
-    int status;
-    waitpid(-1, &status, WNOHANG);
   }
 }
 
@@ -259,6 +289,8 @@ void RunSyncProcess(char **args) {
     exit(1);
   } else if (pid == 0) {
     execvp(args[0], args);
+    perror("child did not exit properly");
+    _exit(1);
   } else {
     std::ostringstream ss;
     ss << args;
@@ -272,10 +304,10 @@ void runNativeUserCommand(std::vector<std::string> const &commands) {
   char **args = GetBasicArgs(commands);
 
   if (commands[2] == "&") {
-    std::cout << "inside this b" << std::endl;
     RunBackgroundProcess(args);
     return;
   }
+
   // TODO: idk if these native user commands will ever have more than 2 args...
   switch (ArgToEnum(args[0])) {
     case native_commands_enum::exit_command: {
@@ -285,6 +317,8 @@ void runNativeUserCommand(std::vector<std::string> const &commands) {
     }
     case native_commands_enum::sleep_command: {
       printf("<------ RUNNING SLEEP ------>\n");
+      // SleepCommand(args);
+      // TODO: SLEEP CANNOT BE CALLED WITH EXEC
       RunSyncProcess(args);
       break;
     }
@@ -322,9 +356,13 @@ bool isNativeCommand(std::string command) {
 
 std::vector<std::string> getUserInput() {
   std::string input;
-  std::cout << SHELL379;
+  std::cout << SHELL379 << std::flush;
   std::getline(std::cin, input);
   return SplitString(input);
+}
+
+bool IsBackgroundCommand(std::vector<std::string> command) {
+  return command.at(command.size() - 1) == "&";
 }
 
 /**
@@ -343,19 +381,26 @@ int main() {
     if (user_input.size() <= 0) {
       continue;
     }
-    // gets rid of zombie but can still exist... (???) i *think* it's done??
-    background_pid = waitpid(-1, &status, WNOHANG);  // run for all pid??
-    if (process_control_block.count(background_pid) == 1) {
-      process_control_block.erase(background_pid);
+    for (auto entry : process_control_block) {
+      int pid = entry.first;
+      background_pid = waitpid(pid, &status, WNOHANG);  // run for all pid??
+      if (process_control_block.count(background_pid) == 1) {
+        std::cout << "erasing PID: " << background_pid << " from PCB"
+                  << std::endl;
+        if (WIFEXITED(status)) {
+          process_control_block.erase(background_pid);
+        }
+      }
     }
+
     // TODO: eventually for non-native commands will need to validate with
-    // TODO: handling piping or whatever
     if (isNativeCommand(user_input.at(0))) {
       runNativeUserCommand(user_input);
     } else {
-      // TODO: cd doesn't work
+      // TODO: get rid of ampersand...
+      user_input.pop_back();
       char **args = GetBasicArgs(user_input);
-      if (user_input.at(user_input.size() - 1) == "&") {
+      if (IsBackgroundCommand(user_input)) {
         RunBackgroundProcess(args);
       } else {
         RunSyncProcess(args);
