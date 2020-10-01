@@ -1,0 +1,4 @@
+  PID TTY           TIME CMD
+ 8064 ttys000    0:00.03 sudo ./shell379
+ 8068 ttys000    0:00.00 ./shell379
+ 8072 ttys000    0:00.00 ps

@@ -1,6 +1,9 @@
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <fstream>
@@ -29,6 +32,13 @@ const std::string RESOURCES_USED = "Resources used:\n";
 const std::string PS_COMMAND = "ps -o pid,state,time";
 const std::string PS_ERROR = "Could not run 'ps' command :( \n";
 
+struct ioDetails {
+  std::string fileIN;
+  int indexIN;
+  std::string fileOUT;
+  int indexOUT;
+};
+
 std::map<int, std::string> process_control_block;
 const std::set<std::string> native_commands = {
     "exit", "jobs", "kill", "resume", "sleep", "suspend", "wait"};
@@ -43,7 +53,7 @@ enum native_commands_enum {
   wait_command
 };
 
-native_commands_enum ArgToEnum(std::string arg) {
+native_commands_enum ArgToEnum(std::string const &arg) {
   static const std::map<std::string, native_commands_enum> command_to_enum{
       {"exit", native_commands_enum::exit_command},
       {"jobs", native_commands_enum::jobs_command},
@@ -85,6 +95,47 @@ std::vector<std::string> SplitString(std::string input) {
   std::vector<std::string> commands(begin, end);
 
   return commands;
+}
+std::string GetFileContents(std::string fileName) {
+  std::ifstream fstream(fileName, std::ifstream::in);
+  std::ostringstream ss;
+
+  ss << fstream.rdbuf();
+  fstream.close();
+  return ss.str();
+}
+
+ioDetails GetIOArgs(std::vector<std::string> const &command) {
+  std::string fileIN = "";
+  std::string fileOUT = "";
+  int indexIN = -1;
+  int indexOUT = -1;
+  int counter = 0;
+  for (auto cmd : command) {
+    for (auto letter : cmd) {
+      if (letter == '<') {
+        indexIN = counter;
+        fileIN = cmd;
+        fileIN.erase(0, 1);
+        break;
+      }
+
+      if (letter == '>') {
+        indexOUT = counter;
+        fileOUT = cmd;
+        fileOUT.erase(0, 1);
+        break;
+      }
+    }
+    counter++;
+  }
+  ioDetails details;
+  details.fileIN = fileIN;
+  details.indexIN = indexIN;
+  details.fileOUT = fileOUT;
+  details.indexOUT = indexOUT;
+
+  return details;
 }
 
 // std::string FormatTimeToSeconds(std::string process_time) {
@@ -249,12 +300,11 @@ void SuspendCommand(int id) {
 
 // TODO: move to another file
 void WaitCommand(int id) {
-  // TODO: change to wait_pid
   int status;
   waitpid(id, &status, 0);
 }
 
-void SleepCommand() {}
+void SleepCommand(int seconds) { sleep(seconds); }
 
 // TODO: WHY IS SHELL379 DOUBLED????
 void RunBackgroundProcess(char **args) {
@@ -282,34 +332,64 @@ void RunBackgroundProcess(char **args) {
   }
 }
 
-void RunSyncProcess(char **args) {
+void RunSyncProcess(std::vector<std::string> &commands) {
+  ioDetails ioArgs = GetIOArgs(commands);
+  std::string in = "";
+  std::string out = "";
+  bool isInputFile = false;
+  bool isOutputFile = false;
+  int fdIN;
+  int fdOUT;
+  if (ioArgs.fileIN != "") {
+    std::cout << "got file " << ioArgs.fileIN << std::endl;
+    isInputFile = true;
+    commands.erase(commands.begin() + ioArgs.indexIN);
+    fdIN = open(ioArgs.fileIN.c_str(), O_RDONLY, S_IRUSR);
+  }
+
+  if (ioArgs.fileOUT != "") {
+    std::cout << "output to file " << ioArgs.fileOUT << std::endl;
+    isOutputFile = true;
+    commands.erase(commands.begin() + ioArgs.indexOUT);
+    fdOUT = open(ioArgs.fileOUT.c_str(), O_WRONLY, S_IRUSR | S_IWUSR);
+  }
+  char **args = GetBasicArgs(commands);
   int pid = fork();
   if (pid < 0) {
     fprintf(stderr, "fork failed\n");
     exit(1);
   } else if (pid == 0) {
+    if (isInputFile) {
+      std::cout << "duplicating file in" << std::endl;
+      dup2(fdIN, STDIN_FILENO);
+    }
+    if (isOutputFile) {
+      std::cout << "duplicating file out" << std::endl;
+      dup2(fdOUT, STDOUT_FILENO);
+    }
     execvp(args[0], args);
     perror("child did not exit properly");
     _exit(1);
   } else {
     std::ostringstream ss;
-    ss << args;
+    for (int i = 0; args[i] != NULL; ++i) {
+      ss << args[i] << " ";
+    }
     process_control_block.insert(std::pair<int, std::string>(pid, ss.str()));
     int status;
-    wait(&pid);
+    waitpid(pid, &status, 0);
+    if (isInputFile) {
+      std::cout << std::endl << std::flush;
+      close(fdIN);
+    }
+    if (isOutputFile) {
+      close(fdOUT);
+    }
   }
 }
 
 void runNativeUserCommand(std::vector<std::string> const &commands) {
-  char **args = GetBasicArgs(commands);
-
-  if (commands[2] == "&") {
-    RunBackgroundProcess(args);
-    return;
-  }
-
-  // TODO: idk if these native user commands will ever have more than 2 args...
-  switch (ArgToEnum(args[0])) {
+  switch (ArgToEnum(commands[0])) {
     case native_commands_enum::exit_command: {
       printf("<------ RUNNING EXIT ------>\n");
       ExitCommand();
@@ -317,9 +397,7 @@ void runNativeUserCommand(std::vector<std::string> const &commands) {
     }
     case native_commands_enum::sleep_command: {
       printf("<------ RUNNING SLEEP ------>\n");
-      // SleepCommand(args);
-      // TODO: SLEEP CANNOT BE CALLED WITH EXEC
-      RunSyncProcess(args);
+      SleepCommand(stoi(commands[1]));
       break;
     }
     case native_commands_enum::jobs_command: {
@@ -329,22 +407,22 @@ void runNativeUserCommand(std::vector<std::string> const &commands) {
     }
     case native_commands_enum::kill_command: {
       printf("<------ RUNNING KILL ------>\n");
-      KillCommand(atoi(args[1]));
+      KillCommand(stoi(commands[1]));
       break;
     }
     case native_commands_enum::resume_command: {
       printf("<------ RUNNING RESUME ------>\n");
-      ResumeCommand(atoi(args[1]));
+      ResumeCommand(stoi(commands[1]));
       break;
     }
     case native_commands_enum::suspend_command: {
       printf("<------ RUNNING SUSPEND ------>\n");
-      SuspendCommand(atoi(args[1]));
+      SuspendCommand(stoi(commands[1]));
       break;
     }
     case native_commands_enum::wait_command: {
       printf("<------ RUNNING WAIT ------>\n");
-      WaitCommand(atoi(args[1]));
+      WaitCommand(stoi(commands[1]));
       break;
     }
   }
@@ -381,9 +459,10 @@ int main() {
     if (user_input.size() <= 0) {
       continue;
     }
+
     for (auto entry : process_control_block) {
       int pid = entry.first;
-      background_pid = waitpid(pid, &status, WNOHANG);  // run for all pid??
+      background_pid = waitpid(pid, &status, WNOHANG);
       if (process_control_block.count(background_pid) == 1) {
         std::cout << "erasing PID: " << background_pid << " from PCB"
                   << std::endl;
@@ -393,17 +472,15 @@ int main() {
       }
     }
 
-    // TODO: eventually for non-native commands will need to validate with
     if (isNativeCommand(user_input.at(0))) {
       runNativeUserCommand(user_input);
     } else {
-      // TODO: get rid of ampersand...
-      user_input.pop_back();
-      char **args = GetBasicArgs(user_input);
       if (IsBackgroundCommand(user_input)) {
+        user_input.pop_back();
+        char **args = GetBasicArgs(user_input);
         RunBackgroundProcess(args);
       } else {
-        RunSyncProcess(args);
+        RunSyncProcess(user_input);
       }
     }
   }
