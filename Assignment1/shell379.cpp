@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -34,9 +35,7 @@ const std::string PS_ERROR = "Could not run 'ps' command :( \n";
 
 struct ioDetails {
   std::string fileIN;
-  int indexIN;
   std::string fileOUT;
-  int indexOUT;
 };
 
 std::map<int, std::string> process_control_block;
@@ -52,6 +51,13 @@ enum native_commands_enum {
   suspend_command,
   wait_command
 };
+
+int GetPositionInCommands(std::vector<std::string> const &commands,
+                          std::string arg) {
+  auto it = std::find(commands.begin(), commands.end(), arg);
+  int index = std::distance(commands.begin(), it);
+  return index;
+}
 
 native_commands_enum ArgToEnum(std::string const &arg) {
   static const std::map<std::string, native_commands_enum> command_to_enum{
@@ -108,22 +114,16 @@ std::string GetFileContents(std::string fileName) {
 ioDetails GetIOArgs(std::vector<std::string> const &command) {
   std::string fileIN = "";
   std::string fileOUT = "";
-  int indexIN = -1;
-  int indexOUT = -1;
   int counter = 0;
   for (auto cmd : command) {
     for (auto letter : cmd) {
       if (letter == '<') {
-        indexIN = counter;
         fileIN = cmd;
-        fileIN.erase(0, 1);
         break;
       }
 
       if (letter == '>') {
-        indexOUT = counter;
         fileOUT = cmd;
-        fileOUT.erase(0, 1);
         break;
       }
     }
@@ -131,9 +131,7 @@ ioDetails GetIOArgs(std::vector<std::string> const &command) {
   }
   ioDetails details;
   details.fileIN = fileIN;
-  details.indexIN = indexIN;
   details.fileOUT = fileOUT;
-  details.indexOUT = indexOUT;
 
   return details;
 }
@@ -198,9 +196,7 @@ void JobsCommand() {
       // std::cout << time << std::endl;
 
       // only look at processes started by shell379
-      std::cout << "from ps: " << pid << std::endl;
       if (process_control_block.count(pid) == 1) {
-        std::cout << "PCB has: " << pid << std::endl << std::endl;
         // look for active processes
         if (state == "R") {  // TODO: need to just check if R is in there
           active_processes++;
@@ -238,6 +234,7 @@ void JobsCommand() {
     for (auto x : process_control_block) {
       std::cout << "PCB entry: " << x.first << " " << x.second;
     }
+    std::cout << std::endl << std::flush;
   }
 }
 
@@ -306,18 +303,50 @@ void WaitCommand(int id) {
 
 void SleepCommand(int seconds) { sleep(seconds); }
 
-// TODO: WHY IS SHELL379 DOUBLED????
-void RunBackgroundProcess(char **args) {
+void RunBackgroundProcess(std::vector<std::string> &commands) {
+  commands.pop_back();
+  ioDetails ioArgs = GetIOArgs(commands);
+  std::string in = "";
+  std::string out = "";
+  bool isInputFile = false;
+  bool isOutputFile = false;
+  int fdIN;
+  int fdOUT;
+  if (ioArgs.fileIN != "") {
+    isInputFile = true;
+    int index = GetPositionInCommands(commands, ioArgs.fileIN);
+    ioArgs.fileIN = ioArgs.fileIN.erase(0, 1);
+    commands.erase(commands.begin() + index);
+    fdIN = open(ioArgs.fileIN.c_str(), O_RDONLY,
+                S_IRUSR);  // TODO: figure out flags...
+  }
+  if (ioArgs.fileOUT != "") {
+    isOutputFile = true;
+    int index = GetPositionInCommands(commands, ioArgs.fileOUT);
+    ioArgs.fileOUT = ioArgs.fileOUT.erase(0, 1);
+    commands.erase(commands.begin() + index);
+    fdOUT = open(ioArgs.fileOUT.c_str(), O_WRONLY,
+                 S_IRUSR | S_IWUSR);  // TODO: figure out flags...
+  }
+  char **args = GetBasicArgs(commands);
+
   std::ostringstream ss1;
   for (int i = 0; args[i] != NULL; ++i) {
     ss1 << args[i] << " ";
   }
-  std::cout << "\n RUNNING BACKGROUND PROCESS \n" << ss1.str() << std::endl;
+  std::cout << "\n RUNNING BACKGROUND PROCESS " << ss1.str() << std::endl;
   int pid = fork();
   if (pid < 0) {
     fprintf(stderr, "fork failed\n");
+    std::cout << std::flush;
     exit(1);
   } else if (pid == 0) {
+    if (isInputFile) {
+      dup2(fdIN, STDIN_FILENO);
+    }
+    if (isOutputFile) {
+      dup2(fdOUT, STDOUT_FILENO);
+    }
     // TODO: ./runner -> for macOS !!! but in csugrad idk...
     execvp(args[0], args);
     perror("child did not exit properly");
@@ -329,6 +358,12 @@ void RunBackgroundProcess(char **args) {
       ss << args[i] << " ";
     }
     process_control_block.insert(std::pair<int, std::string>(pid, ss.str()));
+    if (isInputFile) {
+      close(fdIN);
+    }
+    if (isOutputFile) {
+      close(fdOUT);
+    }
   }
 }
 
@@ -341,41 +376,38 @@ void RunSyncProcess(std::vector<std::string> &commands) {
   int fdIN;
   int fdOUT;
   if (ioArgs.fileIN != "") {
-    std::cout << "got file " << ioArgs.fileIN << std::endl;
     isInputFile = true;
-    commands.erase(commands.begin() + ioArgs.indexIN);
-    fdIN = open(ioArgs.fileIN.c_str(), O_RDONLY, S_IRUSR);
+    int index = GetPositionInCommands(commands, ioArgs.fileIN);
+    ioArgs.fileIN = ioArgs.fileIN.erase(0, 1);
+    commands.erase(commands.begin() + index);
+    fdIN = open(ioArgs.fileIN.c_str(), O_RDONLY,
+                S_IRUSR);  // TODO: figure out flags...
   }
-
   if (ioArgs.fileOUT != "") {
-    std::cout << "output to file " << ioArgs.fileOUT << std::endl;
     isOutputFile = true;
-    commands.erase(commands.begin() + ioArgs.indexOUT);
-    fdOUT = open(ioArgs.fileOUT.c_str(), O_WRONLY, S_IRUSR | S_IWUSR);
+    int index = GetPositionInCommands(commands, ioArgs.fileOUT);
+    ioArgs.fileOUT = ioArgs.fileOUT.erase(0, 1);
+    commands.erase(commands.begin() + index);
+    fdOUT = open(ioArgs.fileOUT.c_str(), O_WRONLY,
+                 S_IRUSR | S_IWUSR);  // TODO: figure out flags...
   }
   char **args = GetBasicArgs(commands);
+
   int pid = fork();
   if (pid < 0) {
     fprintf(stderr, "fork failed\n");
     exit(1);
   } else if (pid == 0) {
     if (isInputFile) {
-      std::cout << "duplicating file in" << std::endl;
       dup2(fdIN, STDIN_FILENO);
     }
     if (isOutputFile) {
-      std::cout << "duplicating file out" << std::endl;
       dup2(fdOUT, STDOUT_FILENO);
     }
     execvp(args[0], args);
     perror("child did not exit properly");
     _exit(1);
   } else {
-    std::ostringstream ss;
-    for (int i = 0; args[i] != NULL; ++i) {
-      ss << args[i] << " ";
-    }
-    process_control_block.insert(std::pair<int, std::string>(pid, ss.str()));
     int status;
     waitpid(pid, &status, 0);
     if (isInputFile) {
@@ -476,9 +508,7 @@ int main() {
       runNativeUserCommand(user_input);
     } else {
       if (IsBackgroundCommand(user_input)) {
-        user_input.pop_back();
-        char **args = GetBasicArgs(user_input);
-        RunBackgroundProcess(args);
+        RunBackgroundProcess(user_input);
       } else {
         RunSyncProcess(user_input);
       }
