@@ -1,6 +1,10 @@
+#include <iostream>
+
 int main() {
-  while (1) {
-    int n = 1;
+  for (int i = 0; i < 1000; i++) {
+    std::cout << "h" << std::endl;
+    int i = 5;
+    wait(&i);
   }
   return 1;
 }
