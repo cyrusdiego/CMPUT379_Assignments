@@ -1,6 +1,7 @@
 #include "parser.hpp"
 
 #include "helpers.hpp"
+
 Parser::Parser() {}
 Parser::~Parser() {}
 
@@ -113,16 +114,20 @@ std::vector<std::string> Parser::ReadPSResults(FILE *p) {
   return SplitStringToVector(psResults);
 }
 
+bool Parser::IsStateRunning(std::string state) { return state.at(0) == 'R'; }
+
 std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
                                    std::vector<std::string> ps_results,
                                    time_t user_time, time_t sys_time) {
   std::ostringstream ss;
   std::string jobs_row;
   std::vector<std::string> jobs_table;
-
   int active_processes = 0;
   int shell_379_processes = 0;
-  for (int i = 3; i < ps_results.size(); i += 6) {
+
+  // skip first 3 entries as they're just the columns
+  // and go in sets of 3 to get contents of row
+  for (int i = 3; i < ps_results.size(); i += 3) {
     // get each column entry: pid, state, time
     int pid = stoi(ps_results[i]);
     std::string state = ps_results[i + 1];
@@ -132,7 +137,7 @@ std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
     // only look at processes started by shell379
     if (pcb.count(pid) == 1) {
       // look for active processes
-      if (state == "R") {  // TODO: need to just check if R is in there
+      if (this->IsStateRunning(state)) {
         active_processes++;
       }
 
@@ -141,6 +146,7 @@ std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
          << " " << pcb.at(pid);
       jobs_row = ss.str();
 
+      // clear stream so i can read next row in ps results
       ss.str("");
       ss.clear();
 
@@ -149,13 +155,14 @@ std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
       shell_379_processes++;
     }
   }
-  // Build string to print Jobs Table
+
+  // // Build string to print Jobs Table
   ss << RUNNING_PROCESS << PCB_COLUMNS;
   for (int i = 0; i < jobs_table.size(); i++) {
     ss << jobs_table[i] << "\n";
   }
 
-  // Add user and sys times to Jobs Table
+  // // Add user and sys times to Jobs Table
   ss << PROCESSES << active_processes << ACTIVE << COMPLETED_PROCESSES
      << USER_TIME << user_time << SECONDS << SYS_TIME << sys_time << SECONDS;
 

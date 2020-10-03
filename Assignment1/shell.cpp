@@ -65,6 +65,7 @@ void Shell::RunNativeCommand() {
   }
 }
 
+// WORKS Background, file I/O, sync
 void Shell::RunCommand() {
   bool isBackgroundProcess = this->parser.GetIsBackgroundProcess();
   if (isBackgroundProcess && this->pcb.size() >= MAX_PT_ENTRIES) {
@@ -112,6 +113,7 @@ void Shell::RunCommand() {
   }
 }
 
+// WORKS
 int Shell::OpenInputFile() {
   auto file_name = this->parser.GetInputFile();
   int fid = open(file_name.c_str(), O_RDONLY, S_IRUSR | S_IWUSR);
@@ -122,6 +124,7 @@ int Shell::OpenInputFile() {
   return fid;
 }
 
+// WORKS
 int Shell::OpenOutputFile() {
   auto file_name = this->parser.GetOutputFile();
   int fid = open(file_name.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
@@ -132,6 +135,7 @@ int Shell::OpenOutputFile() {
   return fid;
 }
 
+// WORKS
 void Shell::JobsCommand() {
   std::vector<std::string> ps_results;
   std::string PCBTable;
@@ -153,23 +157,21 @@ void Shell::JobsCommand() {
     user_time = usage.ru_utime.tv_sec;
     sys_time = usage.ru_stime.tv_sec;
 
-    // Build PCB table from ps results
+    // // Build PCB table from ps results
     PCBTable =
         this->parser.BuildJobsTable(this->pcb, ps_results, user_time, sys_time);
 
-    // Print Jobs Table
+    // // Print Jobs Table
     std::cout << PCBTable;
     std::cout << std::endl << std::flush;
   }
 }
 
+// WORKS
 void Shell::ExitCommand() {
-  std::cout << "size of PCB: " << this->pcb.size() << std::endl;
   for (auto entry : this->pcb) {
     std::pair<int, std::string> process = entry;
     int pid = process.first;
-    std::cout << "kill processes " << pid << std::endl;
-
     kill(pid, SIGKILL);
     int status;
     waitpid(pid, &status, 0);
@@ -189,6 +191,7 @@ void Shell::ExitCommand() {
   _exit(1);
 }
 
+// WORKS
 void Shell::KillCommand(int id) {
   if (kill(id, SIGKILL) < 0) {
     perror("kill failed");
@@ -198,27 +201,35 @@ void Shell::KillCommand(int id) {
   waitpid(id, &status, 0);
 }
 
+// WORKS
 void Shell::ResumeCommand(int id) {
   if (kill(id, SIGCONT) < 0) {
     perror("kill failed");
     _exit(1);
   }
   int status;
-  waitpid(id, &status, 0);
+
+  // TODO: ask daniel if this is correct 3rd param
+  waitpid(id, &status, WNOHANG);
 }
 
+// WORKS
 void Shell::SuspendCommand(int id) {
   if (kill(id, SIGSTOP) < 0) {
     perror("kill failed");
     _exit(1);
   }
   int status;
-  waitpid(id, &status, 0);
+
+  // TODO: ask daniel if this is correct 3rd param
+  waitpid(id, &status, WNOHANG);
 }
 
+// WORKS
 void Shell::WaitCommand(int id) {
   int status;
   waitpid(id, &status, 0);
 }
 
+// WORKS
 void Shell::SleepCommand(int seconds) { sleep(seconds); }

@@ -48,4 +48,5 @@ class Parser {
   void CleanUserInput();
   std::string ValidateInput(std::string input,
                             std::vector<std::string> split_input);
+  bool IsStateRunning(std::string state);
 };
