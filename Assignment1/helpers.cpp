@@ -30,6 +30,7 @@ int GetPositionInVector(std::vector<std::string> const &vec, std::string word) {
  */
 std::vector<std::string> SplitStringToVector(std::string input,
                                              char delimiter) {
+  // https://stackoverflow.com/questions/5607589/right-way-to-split-an-stdstring-into-a-vectorstring
   if (delimiter == ' ') {
     std::stringstream ss(input);
     std::istream_iterator<std::string> begin(ss);
@@ -38,6 +39,7 @@ std::vector<std::string> SplitStringToVector(std::string input,
     return commands;
   }
 
+  // https://www.fluentcpp.com/2017/04/21/how-to-split-a-string-in-c/
   std::vector<std::string> splitInput;
   std::string word;
   std::istringstream ss1(input);

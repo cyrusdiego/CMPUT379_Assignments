@@ -14,4 +14,4 @@ parser.o: parser.cpp
 helpers.o: helpers.cpp
 	$(CC) $(CFLAGS) -c helpers.cpp
 clean:
-	rm -f core *.o
+	rm -f core *.o shell379
