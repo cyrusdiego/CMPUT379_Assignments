@@ -44,6 +44,22 @@ bool Parser::GetIsOutputRedirected() { return this->isOutputRedirected; }
 std::string Parser::GetInputFile() { return this->ioFileDetails.fileIN; }
 std::string Parser::GetOutputFile() { return this->ioFileDetails.fileOUT; }
 
+bool Parser::HasValidArg(std::vector<std::string> cmd) {
+  switch (NativeCommandToEnum(cmd.at(0))) {
+    case native_commands_enum::exit_command:
+    case native_commands_enum::jobs_command: {
+      return cmd.size() == 1;
+    }
+    case native_commands_enum::sleep_command:
+    case native_commands_enum::kill_command:
+    case native_commands_enum::resume_command:
+    case native_commands_enum::suspend_command:
+    case native_commands_enum::wait_command: {
+      return cmd.size() == 2 && IsInteger(cmd.at(1));
+    }
+  }
+}
+
 void Parser::ParseForIO() {
   std::string fileIN = "";
   std::string fileOUT = "";

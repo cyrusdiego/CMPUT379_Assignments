@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -30,6 +31,7 @@ class Parser {
   bool GetIsNativeCommand();
   bool GetIsInputRedirected();
   bool GetIsOutputRedirected();
+  bool HasValidArg(std::vector<std::string> cmd);
   std::string GetInputFile();
   std::string GetOutputFile();
 

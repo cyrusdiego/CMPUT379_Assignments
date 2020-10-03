@@ -32,7 +32,11 @@ void Shell::UpdatePCB() {
 
 void Shell::RunNativeCommand() {
   auto cmd = this->parser.GetCommandsVector();
-  // TODO: DO ERROR CHECKING FOR THE INDEXING HERE JFC
+  if (!this->parser.HasValidArg(cmd)) {
+    fprintf(stderr, "Invalid arguments\n");
+    return;
+  }
+
   switch (NativeCommandToEnum(cmd.at(0))) {
     case native_commands_enum::exit_command: {
       ExitCommand();
