@@ -2,6 +2,10 @@
 
 Shell::Shell() : parser(), pcb() {}
 Shell::~Shell() {}
+
+/**
+ * main loop for shell
+ */
 void Shell::run() {
   while (1) {
     this->parser.GetUserInput();
@@ -17,19 +21,27 @@ void Shell::run() {
   }
 }
 
+/**
+ * updates stored pcb
+ */
 void Shell::UpdatePCB() {
   int pid;
   int background_pid;
   int status;
-  for (auto entry : this->pcb) {
+  auto dupPCB = this->pcb;
+  for (auto entry : dupPCB) {
     pid = entry.first;
     background_pid = waitpid(pid, &status, WNOHANG);
-    if (WIFEXITED(status)) {
-      this->pcb.erase(background_pid);
+    if (background_pid == pid && dupPCB.count(pid) == 1 && WIFEXITED(status)) {
+      this->pcb.erase(pid);
     }
   }
+  this->pcb = dupPCB;
 }
 
+/**
+ * runs native shell commands
+ */
 void Shell::RunNativeCommand() {
   auto cmd = this->parser.GetCommandsVector();
   if (!this->parser.HasValidArg(cmd)) {
@@ -69,7 +81,9 @@ void Shell::RunNativeCommand() {
   }
 }
 
-// WORKS Background, file I/O, sync
+/**
+ * runs <cmd> <arg>*
+ */
 void Shell::RunCommand() {
   bool isBackgroundProcess = this->parser.GetIsBackgroundProcess();
   if (isBackgroundProcess && this->pcb.size() >= MAX_PT_ENTRIES) {
@@ -120,7 +134,9 @@ void Shell::RunCommand() {
   }
 }
 
-// WORKS
+/**
+ * opens file for input
+ */
 int Shell::OpenInputFile() {
   auto file_name = this->parser.GetInputFile();
   int fid = open(file_name.c_str(), O_RDONLY, S_IRUSR | S_IWUSR);
@@ -131,7 +147,9 @@ int Shell::OpenInputFile() {
   return fid;
 }
 
-// WORKS
+/**
+ * opens file for output
+ */
 int Shell::OpenOutputFile() {
   auto file_name = this->parser.GetOutputFile();
   int fid = open(file_name.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
@@ -142,7 +160,9 @@ int Shell::OpenOutputFile() {
   return fid;
 }
 
-// WORKS
+/**
+ * builds jobs table and prints results of ps
+ */
 void Shell::JobsCommand() {
   std::vector<std::string> ps_results;
   std::string PCBTable;
@@ -174,7 +194,9 @@ void Shell::JobsCommand() {
   }
 }
 
-// WORKS
+/**
+ * kills all child processes and then exits
+ */
 void Shell::ExitCommand() {
   for (auto entry : this->pcb) {
     std::pair<int, std::pair<std::string, std::string>> process = entry;
@@ -184,21 +206,24 @@ void Shell::ExitCommand() {
     waitpid(pid, &status, 0);
   }
 
-  // TODO: VERIFY IF THIS WORKS...
+  // get time usage
   struct rusage usage;
   getrusage(RUSAGE_CHILDREN, &usage);
   time_t user_time = usage.ru_utime.tv_sec;
   time_t sys_time = usage.ru_stime.tv_sec;
   std::ostringstream ss;
 
-  ss << RESOURCES_USED << USER_TIME << user_time << std::endl
-     << SYS_TIME << sys_time << std::endl;
+  // print results of resource usage
+  ss << RESOURCES_USED << USER_TIME << user_time << SECONDS << SYS_TIME
+     << sys_time << SECONDS << std::endl;
 
   std::cout << ss.str();
   _exit(1);
 }
 
-// WORKS
+/**
+ * kills child based on pid
+ */
 void Shell::KillCommand(int id) {
   if (kill(id, SIGKILL) < 0) {
     perror(KILL_FAILED.c_str());
@@ -208,7 +233,9 @@ void Shell::KillCommand(int id) {
   waitpid(id, &status, 0);
 }
 
-// WORKS
+/**
+ * resumes suspended child based on pid
+ */
 void Shell::ResumeCommand(int id) {
   if (kill(id, SIGCONT) < 0) {
     perror(KILL_FAILED.c_str());
@@ -220,7 +247,9 @@ void Shell::ResumeCommand(int id) {
   waitpid(id, &status, WNOHANG);
 }
 
-// WORKS
+/**
+ * suspends child based on pid
+ */
 void Shell::SuspendCommand(int id) {
   if (kill(id, SIGSTOP) < 0) {
     perror(KILL_FAILED.c_str());
@@ -232,11 +261,15 @@ void Shell::SuspendCommand(int id) {
   waitpid(id, &status, WNOHANG);
 }
 
-// WORKS
+/**
+ * waits for child process to finish
+ */
 void Shell::WaitCommand(int id) {
   int status;
   waitpid(id, &status, 0);
 }
 
-// WORKS
+/**
+ * sleeps current process
+ */
 void Shell::SleepCommand(int seconds) { sleep(seconds); }

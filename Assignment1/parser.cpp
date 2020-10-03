@@ -5,6 +5,9 @@
 Parser::Parser() {}
 Parser::~Parser() {}
 
+/**
+ * Step 1 of shell: get user input
+ */
 void Parser::GetUserInput() {
   std::string input;
   std::vector<std::string> split_input;
@@ -19,10 +22,14 @@ void Parser::GetUserInput() {
   this->cmdVector = split_input;
 }
 
+/**
+ * Step 1 of shell: parse through input
+ *
+ * sets certain flags based on input
+ */
 void Parser::ParseUserInput() {
   this->isNativeCommand =
       native_commands.find(this->cmdVector.at(0)) != native_commands.end();
-
   this->isBackgroundProcess =
       this->cmdVector.at(this->cmdVector.size() - 1) == "&";
 
@@ -34,6 +41,9 @@ void Parser::ParseUserInput() {
   this->SetArgs();
 }
 
+/**
+ * Parser class's getter functions
+ */
 std::string Parser::GetCommandsString() { return this->commandsString; }
 std::vector<std::string> Parser::GetCommandsVector() { return this->cmdVector; }
 char **Parser::GetArgs() { return this->args; }
@@ -44,6 +54,9 @@ bool Parser::GetIsOutputRedirected() { return this->isOutputRedirected; }
 std::string Parser::GetInputFile() { return this->ioFileDetails.fileIN; }
 std::string Parser::GetOutputFile() { return this->ioFileDetails.fileOUT; }
 
+/**
+ * Validate accompanied argument for native commands
+ */
 bool Parser::HasValidArg(std::vector<std::string> cmd) {
   switch (NativeCommandToEnum(cmd.at(0))) {
     case native_commands_enum::exit_command:
@@ -60,6 +73,9 @@ bool Parser::HasValidArg(std::vector<std::string> cmd) {
   }
 }
 
+/**
+ * Check if user input has file redirection
+ */
 void Parser::ParseForIO() {
   std::string fileIN = "";
   std::string fileOUT = "";
@@ -85,10 +101,16 @@ void Parser::ParseForIO() {
   this->ioFileDetails = details;
 }
 
+/**
+ * Stores user input as char**
+ */
 void Parser::SetArgs() {
   this->args = ConvertVectorToCharArray(this->cmdVector);
 }
 
+/**
+ * Removes <,>,& from user input
+ */
 void Parser::CleanUserInput() {
   std::vector<std::string> newCommands;
   for (auto cmd : this->cmdVector) {
@@ -101,6 +123,9 @@ void Parser::CleanUserInput() {
   this->cmdVector = newCommands;
 }
 
+/**
+ * Validates user input based on spec
+ */
 std::string Parser::ValidateInput(std::string input,
                                   std::vector<std::string> split_input) {
   int line_length = input.size();
@@ -120,6 +145,9 @@ std::string Parser::ValidateInput(std::string input,
   return input;
 }
 
+/**
+ * Call ps command and read character by character
+ */
 std::vector<std::string> Parser::ReadPSResults(FILE *p) {
   int c;
   std::string psResults;
@@ -129,6 +157,10 @@ std::vector<std::string> Parser::ReadPSResults(FILE *p) {
   pclose(p);
   return SplitStringToVector(psResults, ' ');
 }
+
+/**
+ * Pass in time from ps command and convert to seconds
+ */
 std::string Parser::FormatTime(std::string rawTime) {
   std::vector<std::string> splitTime = SplitStringToVector(rawTime, ':');
   int multiplier = 1;
@@ -141,8 +173,14 @@ std::string Parser::FormatTime(std::string rawTime) {
   return std::to_string(seconds);
 }
 
+/**
+ * Checks if current state is in running state
+ */
 bool Parser::IsStateRunning(std::string state) { return state.at(0) == 'R'; }
 
+/**
+ * Builds table for Jobs Command
+ */
 std::string Parser::BuildJobsTable(
     std::map<int, std::pair<std::string, std::string>> &pcb,
     std::vector<std::string> ps_results, time_t user_time, time_t sys_time) {

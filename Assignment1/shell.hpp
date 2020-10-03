@@ -3,10 +3,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <sys/wait.h>
 #include <map>
 #include <string>
-
+#include <sys/resource.h>
 #include "helpers.hpp"
 #include "parser.hpp"
 

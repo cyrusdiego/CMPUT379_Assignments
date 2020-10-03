@@ -1,5 +1,8 @@
 #include "helpers.hpp"
 
+/**
+ * converts string native command to enum for easy use in switch
+ */
 native_commands_enum NativeCommandToEnum(std::string const &arg) {
   static const std::map<std::string, native_commands_enum> command_to_enum{
       {"exit", native_commands_enum::exit_command},
@@ -13,12 +16,18 @@ native_commands_enum NativeCommandToEnum(std::string const &arg) {
   return command_to_enum.at(arg);
 }
 
+/**
+ * get index of element in vector
+ */
 int GetPositionInVector(std::vector<std::string> const &vec, std::string word) {
   auto it = std::find(vec.begin(), vec.end(), word);
   int index = std::distance(vec.begin(), it);
   return index;
 }
 
+/**
+ * splits string into a vector
+ */
 std::vector<std::string> SplitStringToVector(std::string input,
                                              char delimiter) {
   if (delimiter == ' ') {
@@ -39,6 +48,9 @@ std::vector<std::string> SplitStringToVector(std::string input,
   return splitInput;
 }
 
+/**
+ * converts string vector to char**
+ */
 char **ConvertVectorToCharArray(std::vector<std::string> const &commandList) {
   int size = commandList.size();
   int index = 0;
@@ -59,15 +71,17 @@ char **ConvertVectorToCharArray(std::vector<std::string> const &commandList) {
   return args;
 }
 
+/**
+ * checks if string is an integer
+ */
 bool IsInteger(std::string input) {
   std::regex e("([0-9]*)");
   return std::regex_match(input, e);
-  // for (auto c : input) {
-  //   if (!std::isdigit(static_cast<unsigned char>(c))) return false;
-  // }
-  // return true;
 }
 
+/**
+ * checks if string is a decimal
+ */
 bool IsDecimal(std::string input) {
   std::regex e("([0-9]*\\.[0-9]+|[0-9]+)");
   return std::regex_match(input, e);
