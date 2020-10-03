@@ -11,7 +11,7 @@ void Parser::GetUserInput() {
   while (input == "") {
     std::cout << SHELL379 << std::flush;
     std::getline(std::cin, input);
-    split_input = SplitStringToVector(input);
+    split_input = SplitStringToVector(input, ' ');
     input = this->ValidateInput(input, split_input);
   }
 
@@ -127,14 +127,25 @@ std::vector<std::string> Parser::ReadPSResults(FILE *p) {
     psResults.push_back(c);
   }
   pclose(p);
-  return SplitStringToVector(psResults);
+  return SplitStringToVector(psResults, ' ');
+}
+std::string Parser::FormatTime(std::string rawTime) {
+  std::vector<std::string> splitTime = SplitStringToVector(rawTime, ':');
+  int multiplier = 1;
+  int seconds = 0;
+
+  for (int i = splitTime.size() - 1; i > 0; i--) {
+    seconds += std::stof(splitTime.at(i).c_str());
+    multiplier *= 60;
+  }
+  return std::to_string(seconds);
 }
 
 bool Parser::IsStateRunning(std::string state) { return state.at(0) == 'R'; }
 
-std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
-                                   std::vector<std::string> ps_results,
-                                   time_t user_time, time_t sys_time) {
+std::string Parser::BuildJobsTable(
+    std::map<int, std::pair<std::string, std::string>> &pcb,
+    std::vector<std::string> ps_results, time_t user_time, time_t sys_time) {
   std::ostringstream ss;
   std::string jobs_row;
   std::vector<std::string> jobs_table;
@@ -148,10 +159,10 @@ std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
     int pid = stoi(ps_results[i]);
     std::string state = ps_results[i + 1];
     std::string time = ps_results[i + 2];
-    // TODO: format time string
-
+    time = this->FormatTime(time);
     // only look at processes started by shell379
     if (pcb.count(pid) == 1) {
+      pcb.at(pid).second = state;
       // look for active processes
       if (this->IsStateRunning(state)) {
         active_processes++;
@@ -159,7 +170,7 @@ std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
 
       // build PCB row entry
       ss << shell_379_processes << ": " << pid << " " << state << " " << time
-         << " " << pcb.at(pid);
+         << " " << pcb.at(pid).first;
       jobs_row = ss.str();
 
       // clear stream so i can read next row in ps results

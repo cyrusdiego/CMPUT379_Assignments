@@ -17,8 +17,9 @@ class Shell {
   void run();
 
  private:
+  // PID: command, state
+  std::map<int, std::pair<std::string, std::string>> pcb;
   Parser parser;
-  std::map<int, std::string> pcb;
   std::vector<std::string> PCBTable;
   void UpdatePCB();
   void RunNativeCommand();

@@ -19,13 +19,24 @@ int GetPositionInVector(std::vector<std::string> const &vec, std::string word) {
   return index;
 }
 
-std::vector<std::string> SplitStringToVector(std::string input) {
-  std::stringstream ss(input);
-  std::istream_iterator<std::string> begin(ss);
-  std::istream_iterator<std::string> end;
-  std::vector<std::string> commands(begin, end);
+std::vector<std::string> SplitStringToVector(std::string input,
+                                             char delimiter) {
+  if (delimiter == ' ') {
+    std::stringstream ss(input);
+    std::istream_iterator<std::string> begin(ss);
+    std::istream_iterator<std::string> end;
+    std::vector<std::string> commands(begin, end);
+    return commands;
+  }
 
-  return commands;
+  std::vector<std::string> splitInput;
+  std::string word;
+  std::istringstream ss1(input);
+  while (std::getline(ss1, word, delimiter)) {
+    splitInput.push_back(word);
+  }
+
+  return splitInput;
 }
 
 char **ConvertVectorToCharArray(std::vector<std::string> const &commandList) {
@@ -49,8 +60,15 @@ char **ConvertVectorToCharArray(std::vector<std::string> const &commandList) {
 }
 
 bool IsInteger(std::string input) {
-  for (auto c : input) {
-    if (!std::isdigit(static_cast<unsigned char>(c))) return false;
-  }
-  return true;
+  std::regex e("([0-9]*)");
+  return std::regex_match(input, e);
+  // for (auto c : input) {
+  //   if (!std::isdigit(static_cast<unsigned char>(c))) return false;
+  // }
+  // return true;
+}
+
+bool IsDecimal(std::string input) {
+  std::regex e("([0-9]*\\.[0-9]+|[0-9]+)");
+  return std::regex_match(input, e);
 }

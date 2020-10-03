@@ -33,7 +33,7 @@ void Shell::UpdatePCB() {
 void Shell::RunNativeCommand() {
   auto cmd = this->parser.GetCommandsVector();
   if (!this->parser.HasValidArg(cmd)) {
-    fprintf(stderr, "Invalid arguments\n");
+    fprintf(stderr, "%s", INVALID_ARGUMENTS.c_str());
     return;
   }
 
@@ -73,6 +73,7 @@ void Shell::RunNativeCommand() {
 void Shell::RunCommand() {
   bool isBackgroundProcess = this->parser.GetIsBackgroundProcess();
   if (isBackgroundProcess && this->pcb.size() >= MAX_PT_ENTRIES) {
+    fprintf(stderr, "%s", TOO_MANY_BACKGROUND_PROCESSES.c_str());
     return;
   }
   char **args = this->parser.GetArgs();
@@ -84,7 +85,7 @@ void Shell::RunCommand() {
 
   int pid = fork();
   if (pid < 0) {
-    fprintf(stderr, "fork failed\n");
+    fprintf(stderr, "%s", FORK_FAILED.c_str());
     exit(1);
   } else if (pid == 0) {
     if (isInputRedirected) {
@@ -94,14 +95,16 @@ void Shell::RunCommand() {
       dup2(outputFileID, STDOUT_FILENO);
     }
     execvp(args[0], args);
-    perror("child did not exit properly");
+    perror(EXEC_FAILED.c_str());
     _exit(1);
   } else {
     int status;
     int waitFlag = 0;
     if (isBackgroundProcess) {
       std::string command = this->parser.GetCommandsString();
-      this->pcb.insert(std::pair<int, std::string>(pid, command));
+      std::pair<std::string, std::string> entry(command, "R+");
+      this->pcb.insert(
+          std::pair<int, std::pair<std::string, std::string>>(pid, entry));
       pid = -1;
       waitFlag = WNOHANG;
     }
@@ -122,7 +125,7 @@ int Shell::OpenInputFile() {
   auto file_name = this->parser.GetInputFile();
   int fid = open(file_name.c_str(), O_RDONLY, S_IRUSR | S_IWUSR);
   if (fid < 0) {
-    perror("open()");
+    perror(OPEN_FAILED.c_str());
     _exit(1);
   }
   return fid;
@@ -133,7 +136,7 @@ int Shell::OpenOutputFile() {
   auto file_name = this->parser.GetOutputFile();
   int fid = open(file_name.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
   if (fid < 0) {
-    perror("open()");
+    perror(OPEN_FAILED.c_str());
     _exit(1);
   }
   return fid;
@@ -174,7 +177,7 @@ void Shell::JobsCommand() {
 // WORKS
 void Shell::ExitCommand() {
   for (auto entry : this->pcb) {
-    std::pair<int, std::string> process = entry;
+    std::pair<int, std::pair<std::string, std::string>> process = entry;
     int pid = process.first;
     kill(pid, SIGKILL);
     int status;
@@ -198,7 +201,7 @@ void Shell::ExitCommand() {
 // WORKS
 void Shell::KillCommand(int id) {
   if (kill(id, SIGKILL) < 0) {
-    perror("kill failed");
+    perror(KILL_FAILED.c_str());
     _exit(1);
   }
   int status;
@@ -208,24 +211,24 @@ void Shell::KillCommand(int id) {
 // WORKS
 void Shell::ResumeCommand(int id) {
   if (kill(id, SIGCONT) < 0) {
-    perror("kill failed");
+    perror(KILL_FAILED.c_str());
     _exit(1);
   }
   int status;
+  this->pcb.at(id).second = "R+";
 
-  // TODO: ask daniel if this is correct 3rd param
   waitpid(id, &status, WNOHANG);
 }
 
 // WORKS
 void Shell::SuspendCommand(int id) {
   if (kill(id, SIGSTOP) < 0) {
-    perror("kill failed");
+    perror(KILL_FAILED.c_str());
     _exit(1);
   }
   int status;
+  this->pcb.at(id).second = "T+";
 
-  // TODO: ask daniel if this is correct 3rd param
   waitpid(id, &status, WNOHANG);
 }
 
