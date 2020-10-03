@@ -19,7 +19,7 @@ class Shell {
  private:
   Parser parser;
   std::map<int, std::string> pcb;
-
+  std::vector<std::string> PCBTable;
   void UpdatePCB();
   void RunNativeCommand();
   void RunCommand();

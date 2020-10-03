@@ -1,10 +1,10 @@
-#include <iostream>
+#include <unistd.h>
 
+#include <iostream>
 int main() {
+  // sleep(30);
   for (int i = 0; i < 1000; i++) {
-    std::cout << "h" << std::endl;
     int j = 5;
-    wait(&j);
   }
   return 1;
 }

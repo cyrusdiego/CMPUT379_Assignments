@@ -2,7 +2,6 @@ CFLAGS = -O -std=c++11
 CC = g++
 SRC = main.cpp 
 OBJ = $(SRC:.cpp = .o)
-OBJDIR = bin/
 
 shell379: main.o shell.o parser.o 
 	$(CC) $(CFLAGS) -o shell379 parser.o shell.o main.o

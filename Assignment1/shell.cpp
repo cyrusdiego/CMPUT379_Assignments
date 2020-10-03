@@ -133,11 +133,8 @@ int Shell::OpenOutputFile() {
 }
 
 void Shell::JobsCommand() {
-  std::vector<std::string> ps_table;
-  std::vector<std::string> jobs_table;
-  std::string ps_results;
-  std::string jobs_row;
-  std::string process_times;
+  std::vector<std::string> ps_results;
+  std::string PCBTable;
   std::ostringstream ss;
   int active_processes = 0;
   int shell_379_processes = 0;
@@ -145,69 +142,23 @@ void Shell::JobsCommand() {
   time_t sys_time;
   struct rusage usage;
   FILE *p;
-  int c;
 
   if ((p = popen(PS_COMMAND.c_str(), "r")) == NULL) {
     printf("%s", PS_ERROR.c_str());
   } else {
-    // read output of ps into a string
-    while ((c = fgetc(p)) != EOF) {
-      ps_results.push_back(c);
-    }
-    // close file
-    pclose(p);
-
-    // split results from ps comand into vector
-    ps_table = SplitStringToVector(ps_results);
-    for (int i = 3; i < ps_table.size(); i += 6) {
-      // get each column entry: pid, state, time
-      int pid = stoi(ps_table[i]);
-      std::string state = ps_table[i + 1];
-      std::string time = ps_table[i + 2];
-      // TODO: format time string
-      // std::cout << time << std::endl;
-      // std::string time1 = FormatTimeToSeconds(time);
-      // std::cout << time << std::endl;
-
-      // only look at processes started by shell379
-      if (this->pcb.count(pid) == 1) {
-        // look for active processes
-        if (state == "R") {  // TODO: need to just check if R is in there
-          active_processes++;
-        }
-
-        // build PCB row entry
-        ss << shell_379_processes << ": " << pid << " " << state << " " << time
-           << " " << this->pcb.at(pid);
-        jobs_row = ss.str();
-
-        ss.str("");
-        ss.clear();
-
-        // store row into table
-        jobs_table.push_back(jobs_row);
-        shell_379_processes++;
-      }
-    }
-
-    // TODO: VERIFY THIS WORKS
+    // Parse through ps results
+    ps_results = this->parser.ReadPSResults(p);
+    // Get Usage Times
     getrusage(RUSAGE_CHILDREN, &usage);
     user_time = usage.ru_utime.tv_sec;
     sys_time = usage.ru_stime.tv_sec;
 
-    // build Jobs table
-    ss << RUNNING_PROCESS << PCB_COLUMNS;
-    for (int i = 0; i < jobs_table.size(); i++) {
-      ss << jobs_table[i] << "\n";
-    }
-    ss << PROCESSES << active_processes << ACTIVE << COMPLETED_PROCESSES
-       << USER_TIME << user_time << SECONDS << SYS_TIME << sys_time << SECONDS;
+    // Build PCB table from ps results
+    PCBTable =
+        this->parser.BuildJobsTable(this->pcb, ps_results, user_time, sys_time);
 
-    // print jobs table
-    std::cout << ss.str();
-    for (auto x : this->pcb) {
-      std::cout << "PCB entry: " << x.first << " " << x.second;
-    }
+    // Print Jobs Table
+    std::cout << PCBTable;
     std::cout << std::endl << std::flush;
   }
 }

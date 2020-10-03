@@ -102,3 +102,62 @@ std::string Parser::ValidateInput(std::string input,
 
   return input;
 }
+
+std::vector<std::string> Parser::ReadPSResults(FILE *p) {
+  int c;
+  std::string psResults;
+  while ((c = fgetc(p)) != EOF) {
+    psResults.push_back(c);
+  }
+  pclose(p);
+  return SplitStringToVector(psResults);
+}
+
+std::string Parser::BuildJobsTable(std::map<int, std::string> const &pcb,
+                                   std::vector<std::string> ps_results,
+                                   time_t user_time, time_t sys_time) {
+  std::ostringstream ss;
+  std::string jobs_row;
+  std::vector<std::string> jobs_table;
+
+  int active_processes = 0;
+  int shell_379_processes = 0;
+  for (int i = 3; i < ps_results.size(); i += 6) {
+    // get each column entry: pid, state, time
+    int pid = stoi(ps_results[i]);
+    std::string state = ps_results[i + 1];
+    std::string time = ps_results[i + 2];
+    // TODO: format time string
+
+    // only look at processes started by shell379
+    if (pcb.count(pid) == 1) {
+      // look for active processes
+      if (state == "R") {  // TODO: need to just check if R is in there
+        active_processes++;
+      }
+
+      // build PCB row entry
+      ss << shell_379_processes << ": " << pid << " " << state << " " << time
+         << " " << pcb.at(pid);
+      jobs_row = ss.str();
+
+      ss.str("");
+      ss.clear();
+
+      // store row into table
+      jobs_table.push_back(jobs_row);
+      shell_379_processes++;
+    }
+  }
+  // Build string to print Jobs Table
+  ss << RUNNING_PROCESS << PCB_COLUMNS;
+  for (int i = 0; i < jobs_table.size(); i++) {
+    ss << jobs_table[i] << "\n";
+  }
+
+  // Add user and sys times to Jobs Table
+  ss << PROCESSES << active_processes << ACTIVE << COMPLETED_PROCESSES
+     << USER_TIME << user_time << SECONDS << SYS_TIME << sys_time << SECONDS;
+
+  return ss.str();
+}

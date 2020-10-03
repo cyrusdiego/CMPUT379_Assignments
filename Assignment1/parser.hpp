@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -18,6 +19,10 @@ class Parser {
 
   void GetUserInput();
   void ParseUserInput();
+  std::vector<std::string> ReadPSResults(FILE* p);
+  std::string BuildJobsTable(std::map<int, std::string> const& pcb,
+                             std::vector<std::string> ps_results,
+                             time_t user_time, time_t sys_time);
   std::string GetCommandsString();
   std::vector<std::string> GetCommandsVector();
   char** GetArgs();
