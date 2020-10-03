@@ -7,8 +7,9 @@
 #include <map>
 #include <string>
 
-#include "helpers.cpp"
+#include "helpers.hpp"
 #include "parser.hpp"
+
 class Shell {
  public:
   Shell();

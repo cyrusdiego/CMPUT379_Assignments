@@ -24,10 +24,8 @@ void Shell::UpdatePCB() {
   for (auto entry : this->pcb) {
     pid = entry.first;
     background_pid = waitpid(pid, &status, WNOHANG);
-    if (this->pcb.count(background_pid) == 1) {
-      if (WIFEXITED(status)) {
-        this->pcb.erase(background_pid);
-      }
+    if (WIFEXITED(status)) {
+      this->pcb.erase(background_pid);
     }
   }
 }
@@ -35,39 +33,32 @@ void Shell::UpdatePCB() {
 void Shell::RunNativeCommand() {
   auto cmd = this->parser.GetCommandsVector();
   // TODO: DO ERROR CHECKING FOR THE INDEXING HERE JFC
-  switch (helpers::NativeCommandToEnum(cmd.at(0))) {
+  switch (NativeCommandToEnum(cmd.at(0))) {
     case native_commands_enum::exit_command: {
-      printf("<------ RUNNING EXIT ------>\n");
       ExitCommand();
       break;
     }
     case native_commands_enum::sleep_command: {
-      printf("<------ RUNNING SLEEP ------>\n");
       SleepCommand(stoi(cmd.at(1)));
       break;
     }
     case native_commands_enum::jobs_command: {
-      printf("<------ RUNNING JOBS ------>\n");
       JobsCommand();
       break;
     }
     case native_commands_enum::kill_command: {
-      printf("<------ RUNNING KILL ------>\n");
       KillCommand(stoi(cmd.at(1)));
       break;
     }
     case native_commands_enum::resume_command: {
-      printf("<------ RUNNING RESUME ------>\n");
       ResumeCommand(stoi(cmd.at(1)));
       break;
     }
     case native_commands_enum::suspend_command: {
-      printf("<------ RUNNING SUSPEND ------>\n");
       SuspendCommand(stoi(cmd.at(1)));
       break;
     }
     case native_commands_enum::wait_command: {
-      printf("<------ RUNNING WAIT ------>\n");
       WaitCommand(stoi(cmd.at(1)));
       break;
     }
@@ -75,10 +66,13 @@ void Shell::RunNativeCommand() {
 }
 
 void Shell::RunCommand() {
+  bool isBackgroundProcess = this->parser.GetIsBackgroundProcess();
+  if (isBackgroundProcess && this->pcb.size() >= MAX_PT_ENTRIES) {
+    return;
+  }
   char **args = this->parser.GetArgs();
   bool isInputRedirected = this->parser.GetIsInputRedirected();
   bool isOutputRedirected = this->parser.GetIsOutputRedirected();
-  bool isBackgroundProcess = this->parser.GetIsBackgroundProcess();
   int inputFileID, outputFileID;
   if (isInputRedirected) inputFileID = OpenInputFile();
   if (isOutputRedirected) outputFileID = OpenOutputFile();
@@ -119,18 +113,22 @@ void Shell::RunCommand() {
 }
 
 int Shell::OpenInputFile() {
-  auto file_name = this->parser.GetInputFile().c_str();
-  // TODO: figure out flags...
-  int fid = open(file_name, O_RDONLY, S_IRUSR);
-  // TODO: DO ERROR CHECKING FOR THIS!!
+  auto file_name = this->parser.GetInputFile();
+  int fid = open(file_name.c_str(), O_RDONLY, S_IRUSR | S_IWUSR);
+  if (fid < 0) {
+    perror("open()");
+    _exit(1);
+  }
   return fid;
 }
 
 int Shell::OpenOutputFile() {
-  auto file_name = this->parser.GetOutputFile().c_str();
-  // TODO: figure out flags...
-  int fid = open(file_name, O_WRONLY, S_IRUSR | S_IWUSR);
-  // TODO: DO ERROR CHECKING FOR THIS!!
+  auto file_name = this->parser.GetOutputFile();
+  int fid = open(file_name.c_str(), O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+  if (fid < 0) {
+    perror("open()");
+    _exit(1);
+  }
   return fid;
 }
 
@@ -160,7 +158,7 @@ void Shell::JobsCommand() {
     pclose(p);
 
     // split results from ps comand into vector
-    ps_table = helpers::SplitStringToVector(ps_results);
+    ps_table = SplitStringToVector(ps_results);
     for (int i = 3; i < ps_table.size(); i += 6) {
       // get each column entry: pid, state, time
       int pid = stoi(ps_table[i]);

@@ -1,8 +1,8 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
 #include <set>
 #include <string>
 
-#if !defined(SHELL_CONSTANTS)
-#define SHELL_CONSTANTS 1
 #define LINE_LENGTH 100    // Max # of characters in an input line
 #define MAX_ARGS 7         // Max number of arguments to a command
 #define MAX_LENGTH 20      // Max # of characters in an argument

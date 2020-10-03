@@ -41,4 +41,6 @@ class Parser {
   void ParseForIO();
   void SetArgs();
   void CleanUserInput();
+  std::string ValidateInput(std::string input,
+                            std::vector<std::string> split_input);
 };
