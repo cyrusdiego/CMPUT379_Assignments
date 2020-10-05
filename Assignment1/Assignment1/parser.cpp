@@ -110,10 +110,7 @@ void Parser::ConvertVectorToCharArray(std::vector<std::string> const &commandLis
   char *arg;
 
   for (auto cmd : commandList) {
-    arg = new char[cmd.length()];
-    arg = strdup(cmd.c_str());
-    this->args[index] = arg;
-
+    this->args[index] = strdup(cmd.c_str());
     index++;
   }
 
