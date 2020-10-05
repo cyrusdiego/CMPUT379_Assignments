@@ -107,9 +107,11 @@ void Parser::ParseForIO() {
 void Parser::ConvertVectorToCharArray(std::vector<std::string> const &commandList) {
   int size = commandList.size();
   int index = 0;
-  
+
   for (auto cmd : commandList) {
+    char *temp = strdup(cmd.c_str());
     this->args[index] = strdup(cmd.c_str());
+    free(temp);
     index++;
   }
 
