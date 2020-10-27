@@ -1,19 +1,45 @@
-CXXFLAGS = -Wall -O -std=c++11 -pthread
+# Adapted from https://github.com/KRMisha/Makefile/blob/master/Makefile
 CXX = g++
-SOURCES = $(wildcard *.cpp)
-OBJECTS = $(SOURCES:%.cpp=%.o)
-TARGET = prodcon
+CXXFLAGS = -Wall -O -std=c++11 -pthread
 LFLAGS = -lpthread
+TARGET = prodcon
 
-.PHONY: all clean
+SRC_DIR = src
+BIN_DIR = bin
+OBJ_DIR = obj
+INCLUDE_DIR = include
 
-all: $(TARGET)
+SRCS = $(sort $(shell find $(SRC_DIR) -name '*.cpp'))
+OBJECTS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+DEPS = constants.hpp
+
+.PHONY: all clean run
+
+all: $(BIN_DIR)/$(TARGET)
 
 clean:
-	rm -f core *.o $(TARGET)
+	@echo "Cleaning prodcon project: removing $(BIN_DIR) and $(OBJ_DIR) directories" 
+	rm -rf $(BIN_DIR)
+	rm -rf $(OBJ_DIR)
 
-%.o: %.cpp %.hpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+# adopted from https://stackoverflow.com/questions/2214575/passing-arguments-to-make-run
+run: all
+	@echo "Starting program: $(TARGET) $(filter-out $@,$(MAKECMDGOALS))"
+	@cd ./$(BIN_DIR); ./$(TARGET) $(filter-out $@,$(MAKECMDGOALS))
+%:
+    @:
 
-$(TARGET): $(OBJECTS)
-	$(CXX) $(CXXFLAGS) $(LFLAGS) $(OBJECTS) -o $(TARGET)
+# Build executable and link objects
+$(BIN_DIR)/$(TARGET): $(OBJECTS)
+	@echo "Building executable: $@"
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
+
+# Compile source code to object files
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp 
+	@echo "Compiling: $<"
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Include header dependencies for source files
+$(SRC_DIR)/%.cpp: $(INCLUDE_DIR)/%.hpp $(DEPS)
