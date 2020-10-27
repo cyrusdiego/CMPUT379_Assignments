@@ -4,7 +4,7 @@
 
 class ConcurrentQueue {
    private:
-    std::queue<std::string> tasks;
+    std::queue<int> tasks;
     std::mutex can_push;
     std::mutex can_pop;
     std::mutex queue_mutex;
@@ -15,7 +15,7 @@ class ConcurrentQueue {
    public:
     ConcurrentQueue(int maxSize);
     ~ConcurrentQueue();
-    void Push(std::string t);
-    std::string Pop();
+    void Push(int t);
+    int Pop();
     int Size();
 };
