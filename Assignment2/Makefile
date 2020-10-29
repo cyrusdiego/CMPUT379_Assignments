@@ -26,6 +26,7 @@ clean:
 # adopted from https://stackoverflow.com/questions/2214575/passing-arguments-to-make-run
 run: all
 	@echo "Starting program: $(TARGET) $(filter-out $@,$(MAKECMDGOALS))"
+	rm ./output/prodcon.1.log
 	@cd ./$(BIN_DIR); ./$(TARGET) $(filter-out $@,$(MAKECMDGOALS))
 %:
     @:
@@ -37,10 +38,10 @@ $(BIN_DIR)/$(TARGET): $(OBJECTS)
 	@$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
 
 # Compile source code to object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp 
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INCLUDE_DIR)/$(DEPS)
 	@echo "Compiling: $<"
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # Include header dependencies for source files
-$(SRC_DIR)/%.cpp: $(INCLUDE_DIR)/%.hpp $(DEPS)
+$(SRC_DIR)/%.cpp: $(INCLUDE_DIR)/%.hpp 
