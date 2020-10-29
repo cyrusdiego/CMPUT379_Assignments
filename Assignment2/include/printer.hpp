@@ -13,7 +13,7 @@ class Printer {
    private:
     std::mutex printer_mutex;
     std::string file_name;
-    std::chrono::time_point<std::chrono::system_clock> start;
+    std::chrono::time_point<std::chrono::high_resolution_clock> start;
 
    public:
     Printer(int id);

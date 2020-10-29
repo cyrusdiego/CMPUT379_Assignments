@@ -1,6 +1,6 @@
 #include "../include/printer.hpp"
 
-Printer::Printer(int id) : start(std::chrono::system_clock::now()) {
+Printer::Printer(int id) : start(std::chrono::high_resolution_clock::now()) {
     if (id == 0) {
         // TODO: need to include an output directory in submission .zip!!
         file_name = "../output/prodcon.log";
@@ -16,7 +16,7 @@ Printer::~Printer() {}
 // TODO: programatically set the width of each column in case of 3 digit
 void Printer::print(int thread_id, std::string state, int n, int q_size) {
     std::lock_guard<std::mutex> printGuard(printer_mutex);
-    auto end = std::chrono::system_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time = end - start;
     std::ofstream output;
     std::stringstream ss;
@@ -49,7 +49,7 @@ void Printer::print(int thread_id, std::string state, int n, int q_size) {
 }
 
 void Printer::print(statistics stats) {
-    auto end = std::chrono::system_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time = end - start;
     std::ofstream output;
     std::stringstream ss;

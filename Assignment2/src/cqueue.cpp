@@ -4,7 +4,7 @@
 // https://stackoverflow.com/questions/50331130/please-explain-the-use-of-condition-variables-in-c-threads-and-why-do-we-need/50347715#50347715
 // explains you don't need to wrap wait with while loop
 
-ConcurrentQueue::ConcurrentQueue(int size) : tasks(std::queue<int>()), max_size(size), isEOF(false) {}
+ConcurrentQueue::ConcurrentQueue(int size) : tasks(), max_size(size), isEOF(false) {}
 
 ConcurrentQueue::~ConcurrentQueue() {}
 
@@ -25,9 +25,7 @@ int ConcurrentQueue::Pop() {
     if (tasks.size() > 0) {
         int top = tasks.front();
         tasks.pop();
-        if (tasks.size() == max_size - 1) {
-            is_slot_available.notify_all();
-        }
+        is_slot_available.notify_all();
         return top;
     }
     return -1;

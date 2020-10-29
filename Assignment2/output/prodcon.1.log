@@ -1,0 +1,46 @@
+0.000 ID= 1      Ask       
+0.006 ID= 2      Ask       
+0.010 ID= 3      Ask       
+0.013 ID= 0 Q= 0 Work      4 
+0.017 ID= 2 Q= 0 Receive   4 
+0.020 ID= 0 Q= 0 Work      2 
+0.023 ID= 3 Q= 0 Receive   2 
+0.026 ID= 0 Q= 0 Work      1 
+0.029 ID= 2      Complete  4 
+0.031 ID= 2      Ask       
+0.034 ID= 0 Q= 1 Work      1 
+0.037 ID= 1 Q= 0 Receive   1 
+0.047 ID= 3      Complete  2 
+0.049 ID= 3      Ask       
+0.052 ID= 0      Sleep     9 
+0.055 ID= 1      Complete  1 
+0.057 ID= 1      Ask       
+0.060 ID= 2 Q= 0 Receive   1 
+0.063 ID= 2      Complete  1 
+0.066 ID= 2      Ask       
+0.147 ID= 0 Q= 0 Work      5 
+0.150 ID= 0      Sleep     1 
+0.153 ID= 3 Q= 0 Receive   5 
+0.160 ID= 3      Complete  5 
+0.163 ID= 3      Ask       
+0.165 ID= 0 Q= 0 Work      1 
+0.170 ID= 2 Q= 0 Receive   1 
+0.175 ID= 0 Q= 0 Work      1 
+0.178 ID= 2      Complete  1 
+0.181 ID= 2      Ask       
+0.183 ID= 0 Q= 0 Work      1 
+0.187 ID= 3 Q= 0 Receive   1 
+0.189 ID= 0      End       
+0.192 ID= 1 Q= 0 Receive   1 
+0.195 ID= 3      Complete  1 
+0.198 ID= 1      Complete  1 
+Summary:
+    Work       8
+    Ask        9
+    Receive    8
+    Complete   8
+    Sleep      2
+    Thread 1   2
+    Thread 2   3
+    Thread 3   3
+Transactions per second: 39.95
