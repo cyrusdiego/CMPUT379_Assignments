@@ -4,7 +4,7 @@
 // https://stackoverflow.com/questions/50331130/please-explain-the-use-of-condition-variables-in-c-threads-and-why-do-we-need/50347715#50347715
 // explains you don't need to wrap wait with while loop
 
-ConcurrentQueue::ConcurrentQueue(int size) : tasks(std::queue<int>()), max_size(size) {}
+ConcurrentQueue::ConcurrentQueue(int size) : tasks(std::queue<int>()), max_size(size), isEOF(false) {}
 
 ConcurrentQueue::~ConcurrentQueue() {}
 

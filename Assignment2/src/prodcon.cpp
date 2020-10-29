@@ -44,32 +44,33 @@ void consumer(int id) {
 
     // will need to figure out how to kill or stop this loop when
     // all work is done!!
-    while (!isEOF || cq->Size() > 0) {
+    while (!isEOF) {
+        p->print(my_id, ASK);
         int job = cq->Pop();
         if (job != -1) {
+            p->print(my_id, RECEIVE, job, cq->Size());
             Trans(job);
-            p->print(my_id, WORK, job);
+            p->print(my_id, COMPLETE, job);
         }
     }
 }
 
-// states: Receive, Sleep, End
 void producer() {
     std::string input;
     while (std::getline(std::cin, input)) {
         std::string state;
         auto job = parse_job(input);
         if (job.first == 'T') {
-            state = WORK;
+            p->print(0, WORK, job.second, cq->Size());
             cq->Push(job.second);
         } else {
-            state = SLEEP;
             Sleep(job.second);
-            p->print(0, state, job.second);
+            p->print(0, SLEEP, job.second);
         }
     }
     isEOF = true;
     cq->NotifyConsumers(isEOF);
+    p->print(0, END);
 }
 
 int main(int argc, char *argv[]) {
