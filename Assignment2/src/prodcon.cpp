@@ -1,6 +1,3 @@
-#include <chrono>
-#include <iomanip>
-#include <iostream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -12,6 +9,7 @@
 
 ConcurrentQueue *cq;
 Printer *p;
+statistics stats;
 bool isEOF = false;
 
 std::pair<char, int> parse_job(std::string job) {
@@ -38,19 +36,20 @@ std::pair<int, int> parse_input(int argc, char **argv) {
     return std::pair<int, int>(num_threads, id);
 }
 
-// states: Ask, Receive, Work, Complete
 void consumer(int id) {
     int my_id = id;
 
-    // will need to figure out how to kill or stop this loop when
-    // all work is done!!
-    while (!isEOF) {
+    while (!isEOF || cq->Size() > 0) {
         p->print(my_id, ASK);
+        stats.ask++;
         int job = cq->Pop();
         if (job != -1) {
             p->print(my_id, RECEIVE, job, cq->Size());
+            stats.receive++;
             Trans(job);
             p->print(my_id, COMPLETE, job);
+            stats.complete++;
+            stats.work_count[my_id]++;
         }
     }
 }
@@ -62,10 +61,12 @@ void producer() {
         auto job = parse_job(input);
         if (job.first == 'T') {
             p->print(0, WORK, job.second, cq->Size());
+            stats.work++;
             cq->Push(job.second);
         } else {
-            Sleep(job.second);
             p->print(0, SLEEP, job.second);
+            Sleep(job.second);
+            stats.sleep++;
         }
     }
     isEOF = true;
@@ -86,6 +87,7 @@ int main(int argc, char *argv[]) {
 
     // All threads need some sort of ID
     for (int i = 0; i < num_consumers; i++) {
+        stats.work_count.insert({i + 1, 0});
         threadPool.emplace_back(std::thread(&consumer, i + 1));
     }
 
@@ -101,6 +103,8 @@ int main(int argc, char *argv[]) {
             t.join();
         }
     }
+
+    p->print(stats);
 
     // Free resources
     delete cq;

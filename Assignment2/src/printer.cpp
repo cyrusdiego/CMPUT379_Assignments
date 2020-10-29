@@ -13,6 +13,7 @@ Printer::Printer(int id) : start(std::chrono::system_clock::now()) {
 
 Printer::~Printer() {}
 
+// TODO: programatically set the width of each column in case of 3 digit
 void Printer::print(int thread_id, std::string state, int n, int q_size) {
     std::lock_guard<std::mutex> printGuard(printer_mutex);
     auto end = std::chrono::system_clock::now();
@@ -44,5 +45,33 @@ void Printer::print(int thread_id, std::string state, int n, int q_size) {
     ss << std::endl;
 
     output << ss.str() << std::flush;
+    output.close();
+}
+
+void Printer::print(statistics stats) {
+    std::ofstream output;
+    std::stringstream ss;
+
+    output.open(file_name, std::ofstream::out | std::ofstream::app);
+    ss << SUMMARY << std::endl;
+    ss << std::setw(4) << "" << std::setw(10) << std::left << WORK;
+    ss << std::setw(2) << std::right << stats.work << std::endl;
+    ss << std::setw(4) << "" << std::setw(10) << std::left << ASK;
+    ss << std::setw(2) << std::right << stats.ask << std::endl;
+    ss << std::setw(4) << "" << std::setw(10) << std::left << RECEIVE;
+    ss << std::setw(2) << std::right << stats.receive << std::endl;
+    ss << std::setw(4) << "" << std::setw(10) << std::left << COMPLETE;
+    ss << std::setw(2) << std::right << stats.complete << std::endl;
+    ss << std::setw(4) << "" << std::setw(10) << std::left << SLEEP;
+    ss << std::setw(2) << std::right << stats.sleep << std::endl;
+
+    for (auto w : stats.work_count) {
+        ss << std::setw(4) << "" << std::setw(7) << std::left << THREAD;
+        ss << std::setw(3) << std::left << w.first;
+        ss << std::setw(2) << std::right << w.second << std::endl;
+    }
+
+    output
+        << ss.str() << std::flush;
     output.close();
 }

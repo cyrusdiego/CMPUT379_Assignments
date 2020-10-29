@@ -19,6 +19,7 @@ class Printer {
     Printer(int id);
     ~Printer();
     void print(int thread_id, std::string state, int n = -1, int q_size = -1);
+    void print(statistics stats);
 };
 
 #endif
