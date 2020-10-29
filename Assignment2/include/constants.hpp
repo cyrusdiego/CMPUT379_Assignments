@@ -14,6 +14,7 @@ const std::string ID_EQUALS = "ID=";
 const std::string INVALID_ARGUMENTS = "Invalid arguments: requires: nthreads <id>. Exiting program.";
 const std::string SUMMARY = "Summary:";
 const std::string THREAD = "Thread";
+const std::string TRANS_PER_SEC = "Transactions per second: ";
 
 struct statistics {
     int work = 0;

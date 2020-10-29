@@ -49,6 +49,8 @@ void Printer::print(int thread_id, std::string state, int n, int q_size) {
 }
 
 void Printer::print(statistics stats) {
+    auto end = std::chrono::system_clock::now();
+    std::chrono::duration<double> time = end - start;
     std::ofstream output;
     std::stringstream ss;
 
@@ -70,8 +72,8 @@ void Printer::print(statistics stats) {
         ss << std::setw(3) << std::left << w.first;
         ss << std::setw(2) << std::right << w.second << std::endl;
     }
-
-    output
-        << ss.str() << std::flush;
+    double transactions_per_sec = stats.work / time.count();
+    ss << std::setprecision(4) << TRANS_PER_SEC << transactions_per_sec;
+    output << ss.str() << std::flush;
     output.close();
 }
