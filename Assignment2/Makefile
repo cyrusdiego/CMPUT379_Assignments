@@ -1,6 +1,7 @@
 # Adapted from https://github.com/KRMisha/Makefile/blob/master/Makefile
 CXX = g++
-CXXFLAGS = -Wall -O -std=c++11 -pthread
+# TODO: REMOVE -g
+CXXFLAGS = -Wall -O -g -std=c++11 -pthread
 LFLAGS = -lpthread
 TARGET = prodcon
 

@@ -1,3 +1,4 @@
+#include <chrono>
 #include <fstream>
 #include <iostream>
 #include <mutex>
@@ -9,10 +10,11 @@ class Printer {
    private:
     std::mutex printer_mutex;
     std::string file_name;
+    std::chrono::time_point<std::chrono::system_clock> start;
 
    public:
     Printer(int id);
     ~Printer();
-    void print(double time, int thread_id, std::string state, int n);
-    void print(double time, int thread_id, std::string state, int n, int q_size);
+    void print(int thread_id, std::string state, int n);
+    void print(int thread_id, std::string state, int n, int q_size);
 };

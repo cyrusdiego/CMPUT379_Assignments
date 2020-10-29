@@ -1,6 +1,9 @@
 #include "../include/cqueue.hpp"
 
 #include <iostream>
+// https://stackoverflow.com/questions/50331130/please-explain-the-use-of-condition-variables-in-c-threads-and-why-do-we-need/50347715#50347715
+// explains you don't need to wrap wait with while loop
+extern bool isEOF;
 
 ConcurrentQueue::ConcurrentQueue(int size) : tasks(std::queue<int>()) {
     max_size = size;
@@ -9,23 +12,27 @@ ConcurrentQueue::ConcurrentQueue(int size) : tasks(std::queue<int>()) {
 ConcurrentQueue::~ConcurrentQueue() {}
 
 void ConcurrentQueue::Push(int t) {
-    std::unique_lock<std::mutex> push_guard(can_push);
-    is_slot_available.wait(push_guard, [this] { return Size() < max_size; });
-    std::lock_guard<std::mutex> pop_guard(can_pop);
+    std::lock_guard<std::mutex> push_guard(job_avail);
+    std::unique_lock<std::mutex> slot_avail_guard(slot_avail);
+    is_slot_available.wait(slot_avail_guard, [this] { return tasks.size() < max_size; });
     std::lock_guard<std::mutex> queue_guard(queue_mutex);
     tasks.push(t);
     is_job_available.notify_all();
 }
 
 int ConcurrentQueue::Pop() {
-    std::unique_lock<std::mutex> pop_guard(can_pop);
-    is_job_available.wait(pop_guard, [this] { return Size() > 0; });
-    std::lock_guard<std::mutex> push_guard(can_push);
+    std::unique_lock<std::mutex> job_avail_guard(job_avail);
+    is_job_available.wait(job_avail_guard, [this] { return isEOF || tasks.size() > 0; });
+    std::lock_guard<std::mutex> pop_guard(slot_avail);
     std::lock_guard<std::mutex> queue_guard(queue_mutex);
     int top = tasks.front();
+    if (tasks.size() == 0) {
+        return -1;
+    }
     tasks.pop();
-    // only unlock the producer at queue is full then you take one out
-    is_slot_available.notify_all();
+    if (tasks.size() == max_size - 1) {
+        is_slot_available.notify_all();
+    }
     return top;
 }
 

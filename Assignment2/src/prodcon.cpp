@@ -13,6 +13,7 @@
 // instantiate global queue
 ConcurrentQueue *cq;
 Printer *p;
+bool isEOF = false;
 
 std::pair<char, int> parse_job(std::string job) {
     char type = job.front();
@@ -44,36 +45,32 @@ void consumer(int id) {
 
     // will need to figure out how to kill or stop this loop when
     // all work is done!!
-    while (1) {
-        auto start = std::chrono::system_clock::now();
+    while (!isEOF || cq->Size() > 0) {
         int job = cq->Pop();
-        Trans(job);
-        auto end = std::chrono::system_clock::now();
-        std::chrono::duration<double> duration = end - start;
-        p->print(duration.count(), my_id, WORK, job);
+        if (job != -1) {
+            Trans(job);
+            p->print(my_id, WORK, job);
+        }
     }
 }
 
 // states: Receive, Sleep, End
 void producer() {
-    std::string input = "";
-    // TODO: How does the producer know when to stop if input is passed using keyboard??
+    std::string input;
     while (std::getline(std::cin, input)) {
         std::string state;
         auto job = parse_job(input);
-        auto start = std::chrono::system_clock::now();
         if (job.first == 'T') {
             state = WORK;
             cq->Push(job.second);
         } else {
             state = SLEEP;
             Sleep(job.second);
+            p->print(0, state, job.second);
         }
-        auto end = std::chrono::system_clock::now();
-        std::chrono::duration<double> duration = end - start;
-
-        p->print(duration.count(), 0, state, job.second);
     }
+    isEOF = true;
+    cq->is_job_available.notify_all();
 }
 
 int main(int argc, char *argv[]) {
