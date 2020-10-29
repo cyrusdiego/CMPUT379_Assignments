@@ -1,3 +1,5 @@
+#ifndef PRINTER_HPP
+#define PRINTER_HPP
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -19,3 +21,5 @@ class Printer {
     void print(int thread_id, std::string state, int n);
     void print(int thread_id, std::string state, int n, int q_size);
 };
+
+#endif

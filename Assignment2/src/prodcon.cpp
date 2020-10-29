@@ -10,7 +10,6 @@
 #include "../include/printer.hpp"
 #include "../include/tands.hpp"
 
-// instantiate global queue
 ConcurrentQueue *cq;
 Printer *p;
 bool isEOF = false;
@@ -70,7 +69,7 @@ void producer() {
         }
     }
     isEOF = true;
-    cq->is_job_available.notify_all();
+    cq->NotifyConsumers(isEOF);
 }
 
 int main(int argc, char *argv[]) {
