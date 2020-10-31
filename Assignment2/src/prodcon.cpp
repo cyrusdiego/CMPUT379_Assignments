@@ -1,3 +1,5 @@
+#include <cctype>
+#include <cstring>
 #include <string>
 #include <thread>
 #include <vector>
@@ -21,19 +23,29 @@ std::pair<char, int> parse_job(std::string job) {
     return std::pair<char, int>(type, time);
 }
 
+bool is_positive_number(char *arg) {
+    int length = (int)std::strlen(arg);
+    for (int i = 0; i < length; i++) {
+        if (!std::isdigit(arg[i])) return false;
+    }
+    return true;
+}
+
 std::pair<int, int> parse_input(int argc, char **argv) {
-    if (argc > 3 || argc <= 1) {
-        std::cout << INVALID_ARGUMENTS << std::endl;
+    if (argc > 3 || argc <= 1 || !is_positive_number(argv[1])) {
+        perror(INVALID_ARGUMENTS.c_str());
         exit(-1);
     }
-
     int num_threads = atoi(argv[1]);
 
     int id = 0;
     if (argc == 3) {
+        if (!is_positive_number(argv[2])) {
+            perror(INVALID_ARGUMENTS.c_str());
+            exit(-1);
+        }
         id = atoi(argv[2]);
     }
-
     return std::pair<int, int>(num_threads, id);
 }
 

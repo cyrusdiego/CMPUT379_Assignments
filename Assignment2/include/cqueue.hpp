@@ -13,7 +13,7 @@ class ConcurrentQueue {
     std::condition_variable is_slot_available;
     std::condition_variable is_job_available;
 
-    int max_size;
+    unsigned int max_size;
     bool isEOF;
 
    public:
