@@ -10,6 +10,7 @@
 ConcurrentQueue *cq;
 Printer *p;
 statistics stats;
+std::mutex counter_mutex;
 bool isEOF = false;
 
 std::pair<char, int> parse_job(std::string job) {
@@ -36,20 +37,25 @@ std::pair<int, int> parse_input(int argc, char **argv) {
     return std::pair<int, int>(num_threads, id);
 }
 
+void incrementCounter(int *counter) {
+    std::lock_guard<std::mutex> counter_guard(counter_mutex);
+    (*counter)++;
+}
+
 void consumer(int id) {
     int my_id = id;
 
     while (!isEOF || cq->Size() > 0) {
         p->print(my_id, ASK);
-        stats.ask++;
+        incrementCounter(&stats.ask);
         int job = cq->Pop();
         if (job != -1) {
             p->print(my_id, RECEIVE, job, cq->Size());
-            stats.receive++;
+            incrementCounter(&stats.receive);
             Trans(job);
             p->print(my_id, COMPLETE, job);
-            stats.complete++;
-            stats.work_count[my_id]++;
+            incrementCounter(&stats.complete);
+            incrementCounter(&stats.work_count[my_id]);
         }
     }
 }
@@ -61,12 +67,12 @@ void producer() {
         auto job = parse_job(input);
         if (job.first == 'T') {
             p->print(0, WORK, job.second, cq->Size());
-            stats.work++;
+            incrementCounter(&stats.work);
             cq->Push(job.second);
         } else {
             p->print(0, SLEEP, job.second);
             Sleep(job.second);
-            stats.sleep++;
+            incrementCounter(&stats.sleep);
         }
     }
     isEOF = true;
