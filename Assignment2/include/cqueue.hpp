@@ -10,7 +10,6 @@ class ConcurrentQueue {
     std::mutex job_avail;
     std::mutex slot_avail;
     std::mutex queue_mutex;
-    std::mutex size_mutex;
     std::condition_variable is_slot_available;
     std::condition_variable is_job_available;
 
