@@ -1,1 +1,0 @@
-This is placeholder so git includes this directory

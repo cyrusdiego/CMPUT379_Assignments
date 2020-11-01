@@ -1,7 +1,6 @@
 # Credits:
-# https://github.com/KRMisha/Makefile/blob/master/Makefile
-# https://stackoverflow.com/questions/2394609/makefile-header-dependencies
-# https://stackoverflow.com/questions/2214575/passing-arguments-to-make-run
+# Adapted from: https://github.com/KRMisha/Makefile/blob/master/Makefile
+# Auto-generate dependencies: https://stackoverflow.com/questions/2394609/makefile-header-dependencies
 
 CXX = g++
 CXXFLAGS = -Wall -std=c++11 -pthread
@@ -55,6 +54,8 @@ help:
 		<id> = id of log file (optional)\n\
 		<path_to_input_file> = relative (to root directory) path to input file (optional) \n\\n"
 
+# credits to Johan Dahlin and Idelic 
+# https://stackoverflow.com/questions/2214575/passing-arguments-to-make-run
 # If the first argument is "run"...
 ifeq (run,$(firstword $(MAKECMDGOALS)))
   # use the rest as arguments for "run"
