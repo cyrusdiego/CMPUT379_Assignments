@@ -21,7 +21,6 @@ Printer::Printer(int id) : start(std::chrono::system_clock::now()) {
 
 Printer::~Printer() {}
 
-// TODO: programatically set the width of each column in case of 3 digit
 /**
  * prints row in log file using thread id, state, n, and queue size
  */
@@ -35,16 +34,16 @@ void Printer::print(int thread_id, std::string state, int n, int q_size) {
     output.open(file_name, std::ofstream::out | std::ofstream::app);
     ss << std::setprecision(3)
        << std::fixed
-       << std::setw(6)
+       << std::setw(7)
        << std::left
        << time.count();
 
-    ss << std::setw(4) << std::left << ID_EQUALS << std::setw(2) << thread_id;
+    ss << std::setw(4) << std::left << ID_EQUALS << std::setw(3) << thread_id;
 
     if (q_size != -1) {
-        ss << std::setw(3) << std::left << QUEUE_EQUALS << std::setw(2) << q_size;
+        ss << std::setw(3) << std::left << QUEUE_EQUALS << std::setw(3) << q_size;
     } else {
-        ss << std::setw(5) << "";
+        ss << std::setw(6) << "";
     }
 
     ss << std::setw(10) << std::left << state;
