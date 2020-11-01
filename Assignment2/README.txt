@@ -12,13 +12,13 @@ HOW-TO-RUN:
     - <path_to_test_file indicates piping an input file to the program 
 
 - Alternatively, the executable can be found in the bin/ directory and the program can be ran 
-  via "prodcon nthreads <id> <path_to_test_file"
-    - NOTE: if a log file already exists with a given ID, running the program will append to the file
+  via "prodcon nthreads <id> <path_to_test_file" (if you're in the bin/ directory)
+    - NOTE: if a log file already exists with a given ID, running the program will *append* to the file
 
 - The output file (prodcon.<id.>log) will be in the directory in which the program is executed
     - If "make run ..." is used, the log files will be in the root directory 
     - If the executable is ran directly in bin/ then it will be 
-    created in the bin/ directory (careful, running "make clean" will delete the bin/ directory)
+    created in the bin/ directory (careful, running "make clean" will delete the bin/ directory and all contents)
 
 - Makefile commands:
     - "make" will compile *without* any compiler flags 
@@ -27,7 +27,8 @@ HOW-TO-RUN:
     - "make optimize" will compile with a -O flag
     - "make optimize3" will compile with a -O3 flag
     - "make run nthreads <id> <path_to_test_file" will run the executable (./bin/prodcon) 
-       with the passed arguments
+       with the passed arguments, if the executable does not already exist, it will 
+       compile with the standard compiler flags
     - "make help" will show available commands 
 
 
@@ -55,7 +56,7 @@ https://stackoverflow.com/questions/2394609/makefile-header-dependencies
 https://stackoverflow.com/questions/2214575/passing-arguments-to-make-run
 
 --------------------------------------------------------------------------------------------------------------------------
- * Choice of synchronization method: std::condition variables, std::mutex, std::lock_guard
+ * Choice of synchronization method: std::condition variables, std::mutex, std::lock_guard, std::unique_lock
  * 
  * C++ provides easy to use tools for multi-threading synchronization. Originally, I was going 
  * to use C's semaphores (semaphore.h i.e. sem_t) however I wanted to utilize C++'s standard library 

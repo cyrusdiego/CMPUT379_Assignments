@@ -28,6 +28,12 @@
  * https://en.cppreference.com/w/cpp/thread/condition_variable highlights the usage for condition variables
  * 
  * 3) std::unique_lock will auto-release inside the condition variable wait predicate
+ * 
+ * Resources:
+ * https://en.cppreference.com/w/cpp/thread/condition_variable 
+ * https://en.cppreference.com/w/cpp/thread/unique_lock
+ * https://en.cppreference.com/w/cpp/thread/mutex
+ * https://en.cppreference.com/w/cpp/thread/lock_guard
  */
 
 /**
