@@ -8,6 +8,7 @@ CXXFLAGS = -Wall -std=c++11 -pthread
 LFLAGS = -lpthread
 TARGET = prodcon
 
+LOGS_DIR = logs
 SRC_DIR = src
 BIN_DIR = bin
 OBJ_DIR = obj
@@ -20,6 +21,7 @@ DEPENDENCIES = $(OBJECTS:%.o=%.d)
 .PHONY: all clean help run debug optimize optimize3
 
 all: $(BIN_DIR)/$(TARGET)
+	@mkdir -p $(LOGS_DIR)
 
 debug: CXXFLAGS += -g
 debug: all
@@ -53,10 +55,18 @@ help:
 		<id> = id of log file (optional)\n\
 		<path_to_input_file> = relative (to root directory) path to input file (optional) \n\\n"
 
-# adopted from 
+# If the first argument is "run"...
+ifeq (run,$(firstword $(MAKECMDGOALS)))
+  # use the rest as arguments for "run"
+  RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  # ...and turn them into do-nothing targets
+  $(eval $(RUN_ARGS):;@:)
+endif
+
 run: all
-	@echo "Starting program: $(TARGET) $(filter-out $@,$(MAKECMDGOALS))"
-	@cd ./$(BIN_DIR); ./$(TARGET) $(filter-out $@,$(MAKECMDGOALS))
+	@echo "Starting program: $(TARGET) $(RUN_ARGS)"
+	./$(BIN_DIR)/$(TARGET) $(RUN_ARGS)
+
 %:
     @:
 
