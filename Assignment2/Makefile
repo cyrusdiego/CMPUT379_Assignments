@@ -7,7 +7,6 @@ CXXFLAGS = -Wall -std=c++11 -pthread
 LFLAGS = -lpthread
 TARGET = prodcon
 
-LOGS_DIR = logs
 SRC_DIR = src
 BIN_DIR = bin
 OBJ_DIR = obj
@@ -20,7 +19,6 @@ DEPENDENCIES = $(OBJECTS:%.o=%.d)
 .PHONY: all clean help run debug optimize optimize3
 
 all: $(BIN_DIR)/$(TARGET)
-	@mkdir -p $(LOGS_DIR)
 
 debug: CXXFLAGS += -g
 debug: all
