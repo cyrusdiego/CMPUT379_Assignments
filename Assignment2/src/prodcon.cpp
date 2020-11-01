@@ -43,7 +43,7 @@ bool is_positive_number(char *arg) {
  * - nthreads and id are positive integers
  */
 std::pair<int, int> parse_input(int argc, char **argv) {
-    if (argc > 3 || argc <= 1 || !is_positive_number(argv[1])) {
+    if (argc > 3 || argc <= 1 || !is_positive_number(argv[1]) || atoi(argv[1]) <= 0) {
         perror(INVALID_ARGUMENTS.c_str());
         exit(-1);
     }
@@ -51,7 +51,7 @@ std::pair<int, int> parse_input(int argc, char **argv) {
 
     int id = 0;
     if (argc == 3) {
-        if (!is_positive_number(argv[2])) {
+        if (!is_positive_number(argv[2]) || atoi(argv[2]) <= 0) {
             perror(INVALID_ARGUMENTS.c_str());
             exit(-1);
         }
@@ -62,7 +62,6 @@ std::pair<int, int> parse_input(int argc, char **argv) {
 
 /**
  * Thread-safe way to increment counters
- * TODO: guard entire stats struct then increment using if statements
  */
 void incrementCounter(std::string job, int id = 0) {
     std::lock_guard<std::mutex> counter_guard(counter_mutex);
@@ -91,16 +90,16 @@ void consumer(int id) {
     int my_id = id;
 
     while (!isEOF || cq->Size() > 0) {
-        p->print(my_id, ASK);
         incrementCounter(ASK);
+        p->print(my_id, ASK);
         int job = cq->Pop();
         if (job != -1) {
-            p->print(my_id, RECEIVE, job, cq->Size());
             incrementCounter(RECEIVE);
+            p->print(my_id, RECEIVE, job, cq->Size());
             Trans(job);
-            p->print(my_id, COMPLETE, job);
             incrementCounter(COMPLETE);
             incrementCounter("", my_id);
+            p->print(my_id, COMPLETE, job);
         }
     }
 }
@@ -117,13 +116,13 @@ void producer() {
         auto job = parse_job(input);
 
         if (job.first == 'T') {
-            incrementCounter(WORK);
             cq->Push(job.second);
+            incrementCounter(WORK);
             p->print(0, WORK, job.second, cq->Size());
         } else {
-            p->print(0, SLEEP, job.second);
             Sleep(job.second);
             incrementCounter(SLEEP);
+            p->print(0, SLEEP, job.second);
         }
     }
     isEOF = true;
