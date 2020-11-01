@@ -53,3 +53,37 @@ MAKEFILE CREDITS:
 https://github.com/KRMisha/Makefile/blob/master/Makefile
 https://stackoverflow.com/questions/2394609/makefile-header-dependencies
 https://stackoverflow.com/questions/2214575/passing-arguments-to-make-run
+
+--------------------------------------------------------------------------------------------------------------------------
+ * Choice of synchronization method: std::condition variables, std::mutex, std::lock_guard
+ * 
+ * C++ provides easy to use tools for multi-threading synchronization. Originally, I was going 
+ * to use C's semaphores (semaphore.h i.e. sem_t) however I wanted to utilize C++'s standard library 
+ * (semaphores are in C++20 not 11).
+ * 
+ * Reasons to use STL for synchronization:
+ * 
+ * 1) std::lock_guard unlocks mutexes when they go out of scope so it provides easy management 
+ * 
+ * 2) std::condition_variable 's wait() function provides syntactic sugar to do readible and clean predicate
+ * checks:
+ * For example, 
+ *      std::condition_variable my_condition_var;
+ *      std::unique_lock<std::mutex> my_guard(my_mutex);
+ *      my_condition_var.wait(my_guard, [this] { return predicate(); });
+ * 
+ *  Translates to:
+ *      std::condition_variable my_condition_var;
+ *      std::unique_lock<std::mutex> my_guard(my_mutex);
+ *      while(!predicate()) {
+ *           my_condition_var.wait(my_guard);
+ *      }
+ *       
+ * 3) std::unique_lock will auto-release inside the condition variable wait predicate
+ *
+ *
+ * Resources:
+ * https://en.cppreference.com/w/cpp/thread/condition_variable 
+ * https://en.cppreference.com/w/cpp/thread/unique_lock
+ * https://en.cppreference.com/w/cpp/thread/mutex
+ * https://en.cppreference.com/w/cpp/thread/lock_guard
