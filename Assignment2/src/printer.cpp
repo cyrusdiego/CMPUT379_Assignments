@@ -1,13 +1,19 @@
 #include "../include/printer.hpp"
 
 Printer::Printer(int id) : start(std::chrono::system_clock::now()) {
+    std::ofstream output;
+
     if (id == 0) {
         // TODO: need to include an output directory in submission .zip!!
         file_name = "../output/prodcon.log";
+        output.open(file_name, std::ofstream::out | std::ofstream::app);
+        output.close();
     } else {
         std::stringstream ss;
         ss << "../output/prodcon." << id << ".log";
         file_name = ss.str();
+        output.open(file_name, std::ofstream::out | std::ofstream::app);
+        output.close();
     }
 }
 
