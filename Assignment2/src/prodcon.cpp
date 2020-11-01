@@ -15,6 +15,9 @@ statistics stats;
 std::mutex counter_mutex;
 bool isEOF = false;
 
+/**
+ * Parse T<n> to a joby type and time
+ */
 std::pair<char, int> parse_job(std::string job) {
     char type = job.front();
     std::string s(job.begin() + 1, job.end());
@@ -23,6 +26,9 @@ std::pair<char, int> parse_job(std::string job) {
     return std::pair<char, int>(type, time);
 }
 
+/**
+ * Checks if a string is a positive 
+ */
 bool is_positive_number(char *arg) {
     int length = (int)std::strlen(arg);
     for (int i = 0; i < length; i++) {
@@ -31,6 +37,11 @@ bool is_positive_number(char *arg) {
     return true;
 }
 
+/**
+ * Ensures:
+ * - Valid number of input provided
+ * - nthreads and id are positive integers
+ */
 std::pair<int, int> parse_input(int argc, char **argv) {
     if (argc > 3 || argc <= 1 || !is_positive_number(argv[1])) {
         perror(INVALID_ARGUMENTS.c_str());
@@ -49,42 +60,70 @@ std::pair<int, int> parse_input(int argc, char **argv) {
     return std::pair<int, int>(num_threads, id);
 }
 
-void incrementCounter(int *counter) {
+/**
+ * Thread-safe way to increment counters
+ * TODO: guard entire stats struct then increment using if statements
+ */
+void incrementCounter(std::string job, int id = 0) {
     std::lock_guard<std::mutex> counter_guard(counter_mutex);
-    (*counter)++;
+
+    if (job == ASK) {
+        stats.ask++;
+    } else if (job == RECEIVE) {
+        stats.receive++;
+    } else if (job == COMPLETE) {
+        stats.complete++;
+    } else if (job == WORK) {
+        stats.work++;
+    } else if (job == SLEEP) {
+        stats.sleep++;
+    } else {
+        stats.work_count[id]++;
+    }
 }
 
+/**
+ * Consumer loop that will:
+ * - Try to pop from queue
+ * - if a valid job, runs Trans(n)
+ */
 void consumer(int id) {
     int my_id = id;
 
     while (!isEOF || cq->Size() > 0) {
         p->print(my_id, ASK);
-        incrementCounter(&stats.ask);
+        incrementCounter(ASK);
         int job = cq->Pop();
         if (job != -1) {
             p->print(my_id, RECEIVE, job, cq->Size());
-            incrementCounter(&stats.receive);
+            incrementCounter(RECEIVE);
             Trans(job);
             p->print(my_id, COMPLETE, job);
-            incrementCounter(&stats.complete);
-            incrementCounter(&stats.work_count[my_id]);
+            incrementCounter(COMPLETE);
+            incrementCounter("", my_id);
         }
     }
 }
 
+/**
+ * Producer loop that will:
+ * - read input from user or file
+ * - if T<n> will push to queue
+ * - if S<n> will sleep 
+ */
 void producer() {
     std::string input;
     while (std::getline(std::cin, input)) {
-        std::string state;
         auto job = parse_job(input);
+
         if (job.first == 'T') {
-            p->print(0, WORK, job.second, cq->Size());
-            incrementCounter(&stats.work);
+            incrementCounter(WORK);
             cq->Push(job.second);
+            p->print(0, WORK, job.second, cq->Size());
         } else {
             p->print(0, SLEEP, job.second);
             Sleep(job.second);
-            incrementCounter(&stats.sleep);
+            incrementCounter(SLEEP);
         }
     }
     isEOF = true;
@@ -92,12 +131,16 @@ void producer() {
     p->print(0, END);
 }
 
+/**
+ * Entry point for program
+ * Initializes threads, global objects, and starts producer / consumer loops
+ */
 int main(int argc, char *argv[]) {
+    // Checks user input
     auto args = parse_input(argc, argv);
     int num_consumers = args.first;
     int id = args.second;
-
-    // Initialize concurrent queue and thread safe printer
+    // // Initialize concurrent queue and thread safe printer
     cq = new ConcurrentQueue(num_consumers * 2);
     p = new Printer(id);
 
@@ -112,9 +155,6 @@ int main(int argc, char *argv[]) {
     // Main thread is producer
     producer();
 
-    // when main thread exits producer(), will need to wait for
-    // consumers to finish their work
-
     // Delete threads
     for (auto &t : threadPool) {
         if (t.joinable()) {
@@ -122,6 +162,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // prints final stats
     p->print(stats);
 
     // Free resources

@@ -1,6 +1,5 @@
 #include "../include/cqueue.hpp"
 
-#include <iostream>
 // https://stackoverflow.com/questions/50331130/please-explain-the-use-of-condition-variables-in-c-threads-and-why-do-we-need/50347715#50347715
 // explains you don't need to wrap wait with while loop
 
@@ -9,12 +8,12 @@ ConcurrentQueue::ConcurrentQueue(int size) : tasks(std::queue<int>()), max_size(
 ConcurrentQueue::~ConcurrentQueue() {}
 
 void ConcurrentQueue::Push(int t) {
-    std::lock_guard<std::mutex> push_guard(job_avail);
     std::unique_lock<std::mutex> slot_avail_guard(slot_avail);
     is_slot_available.wait(slot_avail_guard, [this] { return tasks.size() < max_size; });
+    std::lock_guard<std::mutex> push_guard(job_avail);
     std::lock_guard<std::mutex> queue_guard(queue_mutex);
     tasks.push(t);
-    is_job_available.notify_all();
+    is_job_available.notify_one();
 }
 
 int ConcurrentQueue::Pop() {
@@ -25,15 +24,14 @@ int ConcurrentQueue::Pop() {
     if (tasks.size() > 0) {
         int top = tasks.front();
         tasks.pop();
-        if (tasks.size() == max_size - 1) {
-            is_slot_available.notify_all();
-        }
+        is_slot_available.notify_all();
         return top;
     }
     return -1;
 }
 
 int ConcurrentQueue::Size() {
+    std::lock_guard<std::mutex> size_guard(size_mutex);
     return tasks.size();
 }
 
