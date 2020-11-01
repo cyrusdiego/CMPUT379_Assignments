@@ -1,5 +1,8 @@
 #include "../include/printer.hpp"
 
+/**
+ * starts timer and creates file
+ */
 Printer::Printer(int id) : start(std::chrono::system_clock::now()) {
     std::ofstream output;
 
@@ -19,6 +22,9 @@ Printer::Printer(int id) : start(std::chrono::system_clock::now()) {
 Printer::~Printer() {}
 
 // TODO: programatically set the width of each column in case of 3 digit
+/**
+ * prints row in log file using thread id, state, n, and queue size
+ */
 void Printer::print(int thread_id, std::string state, int n, int q_size) {
     std::lock_guard<std::mutex> printGuard(printer_mutex);
     auto end = std::chrono::system_clock::now();
@@ -53,6 +59,9 @@ void Printer::print(int thread_id, std::string state, int n, int q_size) {
     output.close();
 }
 
+/**
+ * prints end of program stats
+ */
 void Printer::print(statistics stats) {
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> time = end - start;
