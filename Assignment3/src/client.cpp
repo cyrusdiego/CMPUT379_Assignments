@@ -8,7 +8,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <iostream>
 #include <string>
+#include <vector>
+// #include "../include/tands.hpp"
+
 using namespace std;
 
 bool is_valid_port(string port) {
@@ -22,6 +26,17 @@ bool is_valid_ip(string ip) {
     int s = inet_pton(AF_INET, ip.c_str(), buf);
 
     return s == 1;
+}
+
+/**
+ * Parse T<n> to a job type and time
+ */
+std::pair<char, int> parse_job(std::string job) {
+    char type = job.front();
+    std::string s(job.begin() + 1, job.end());
+    long int time = stoll(s);
+
+    return std::pair<char, int>(type, time);
 }
 
 /**
@@ -42,54 +57,55 @@ int main(int argc, char *argv[]) {
     string port = args.first;
     string ip = args.second;
 
-    // // code from eClass, modified to accept port and ip address from input
-    // int sock;
-    // struct sockaddr_in server;
-    // char message[1000], server_reply[1000];
+    // code from eClass, modified to accept port and ip address from input
+    int sock;
+    struct sockaddr_in server;
+    server.sin_addr.s_addr = inet_addr(ip.c_str());
+    server.sin_family = AF_INET;
+    server.sin_port = htons(stoi(port));
 
-    // //Create socket
-    // sock = socket(AF_INET, SOCK_STREAM, 0);
-    // if (sock == -1) {
-    //     printf("Could not create socket");
-    // }
-    // puts("Socket created");
+    const unsigned int MAX_BUF_LENGTH = 1024;
+    string req, resp;
+    vector<char> buffer(MAX_BUF_LENGTH);
 
-    // server.sin_addr.s_addr = inet_addr(ip.c_str());
-    // server.sin_family = AF_INET;
-    // server.sin_port = htons(stoi(port));
+    // Create socket
+    if (socket(AF_INET, SOCK_STREAM, 0) < 0) {
+        perror("Could not create socket");
+        return -1;
+    }
 
-    // //Connect to remote server
-    // if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
-    //     perror("connect failed. Error");
-    //     return 1;
-    // }
+    // Connect to remote server
+    if (connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0) {
+        perror("Connect failed");
+        return -1;
+    }
 
-    // puts("Connected\n");
+    // Main client loop
+    while (std::getline(std::cin, req)) {
+        auto job = parse_job(req);
 
-    // //keep communicating with server
-    // while (1) {
-    //     memset(message, 0, 1000);
-    //     printf("Enter message : ");
-    //     scanf("%s", message);
+        if (job.first == 'T') {
+            if (send(sock, req.c_str(), req.length(), 0) < 0) {
+                printf("Send failed");
+                // TODO: should I return here?
+                return -1;
+            }
 
-    //     //Send some data
-    //     puts("Server send :");
-    //     puts(message);
-    //     if (send(sock, message, strlen(message), 0) < 0) {
-    //         puts("Send failed");
-    //         return 1;
-    //     }
+            // Receive a reply from the server
+            if (recv(sock, &buffer[0], buffer.size(), 0) < 0) {
+                printf("Recieve failed");
+                // TODO: should i return here?
+                return -1;
+            }
 
-    //     //Receive a reply from the server
-    //     memset(server_reply, 0, 1000);
-    //     if (recv(sock, server_reply, 1000, 0) < 0) {
-    //         puts("recv failed");
-    //         break;
-    //     }
-    //     puts("Server reply: ");
-    //     puts(server_reply);
-    // }
+            resp.append(buffer.cbegin(), buffer.cend());
+            // doSomething(resp);
+            printf("MESSAGE FROM SERVER: %s\n", resp.c_str());
+        } else {
+            // Sleep(job.second);
+        }
+    }
 
-    // close(sock);
+    close(sock);
     return 0;
 }
