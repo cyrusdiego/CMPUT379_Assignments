@@ -1,12 +1,8 @@
-/*
-	C socket server example
-*/
 
 #include <arpa/inet.h>
+#include <poll.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -14,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "../../include/helpers.hpp"
 #include "../../include/tands.hpp"
 
 struct server_stats {
@@ -21,11 +18,6 @@ struct server_stats {
 };
 
 server_stats statistics;
-
-bool is_valid_port(std::string port) {
-    int p = stoi(port);
-    return p >= 5000 && p <= 64000;
-}
 
 int parse_job(std::string job) {
     int num = stoi(job.substr(1, job.length()));
@@ -36,7 +28,6 @@ int parse_job(std::string job) {
 
     return num;
 }
-
 /**
  * Ensures:
  * - Valid number of input provided
@@ -52,7 +43,7 @@ std::string parse_input(int argc, char **argv) {
 
 int main(int argc, char *argv[]) {
     std::string port = parse_input(argc, argv);
-
+    //TODO: should i close connection on any fail
     // code from eClass, modified to accept port from input
     struct sockaddr_in server, client;
     server.sin_family = AF_INET;
@@ -76,6 +67,10 @@ int main(int argc, char *argv[]) {
         perror("Bind failed");
         return -1;
     }
+
+    poll_fd.fd = socket_desc;
+    poll_fd.events = POLLIN;
+    int timeout = 30000;  // 30 sec
 
     listen(socket_desc, 100);
     client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
