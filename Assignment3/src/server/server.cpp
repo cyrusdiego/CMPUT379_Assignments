@@ -6,17 +6,35 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
-using namespace std;
-// #include "tands.h"
 
-bool is_valid_port(string port) {
+#include "../../include/tands.hpp"
+
+struct server_stats {
+    int transaction_number = 0;
+};
+
+server_stats statistics;
+
+bool is_valid_port(std::string port) {
     int p = stoi(port);
     return p >= 5000 && p <= 64000;
+}
+
+int parse_job(std::string job) {
+    int num = stoi(job.substr(1, job.length()));
+
+    if (num < 0) {
+        return -1;
+    }
+
+    return num;
 }
 
 /**
@@ -24,7 +42,7 @@ bool is_valid_port(string port) {
  * - Valid number of input provided
  * - validate if passed arguments are valid port
  */
-string parse_input(int argc, char **argv) {
+std::string parse_input(int argc, char **argv) {
     if (argc > 2 || argc <= 1 || !is_valid_port(argv[1])) {
         perror("Invalid arguments");
         exit(-1);
@@ -33,7 +51,7 @@ string parse_input(int argc, char **argv) {
 }
 
 int main(int argc, char *argv[]) {
-    string port = parse_input(argc, argv);
+    std::string port = parse_input(argc, argv);
 
     // code from eClass, modified to accept port from input
     struct sockaddr_in server, client;
@@ -43,17 +61,17 @@ int main(int argc, char *argv[]) {
 
     int socket_desc, client_sock, read_size, c = sizeof(client);
     const unsigned int MAX_BUF_LENGTH = 1024;
-    vector<char> buffer(MAX_BUF_LENGTH);
-    string req, resp;
+    std::vector<char> buffer(MAX_BUF_LENGTH);
+    std::string req, resp;
 
-    //Create socket
+    // Create socket
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_desc == -1) {
         printf("Could not create socket");
         return -1;
     }
 
-    //Bind
+    // Bind
     if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
         perror("Bind failed");
         return -1;
@@ -67,12 +85,21 @@ int main(int argc, char *argv[]) {
     }
 
     // Receive a message from client
+    int n, job_count = 0;
     while ((read_size = recv(client_sock, &buffer[0], buffer.size(), 0)) > 0) {
         req.append(buffer.cbegin(), buffer.cend());
 
-        // resp = doSomething();
-        printf("MESSAGE FROM CLIENT: %s\n", req.c_str());
-        write(client_sock, resp.c_str(), resp.length());
+        // Do work
+        if ((n = parse_job(req)) < 0) {
+            continue;
+        }
+        Trans(n);
+        statistics.transaction_number++;
+
+        // Send response back to client
+        std::stringstream resp;
+        resp << "D" << ++job_count;
+        write(client_sock, resp.str().c_str(), resp.str().length());
     }
 
     if (read_size == 0) {

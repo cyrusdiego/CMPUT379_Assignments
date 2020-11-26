@@ -3,8 +3,7 @@
 # Auto-generate dependencies: https://stackoverflow.com/questions/2394609/makefile-header-dependencies
 
 CXX = g++
-CXXFLAGS = -Wall -std=c++11 -pthread
-LFLAGS = -lpthread
+CXXFLAGS = -Wall -std=c++11
 CLIENT = client
 SERVER = server
 
@@ -13,13 +12,19 @@ BIN_DIR = bin
 OBJ_DIR = obj
 INCLUDE_DIR = include
 
-SRCS = $(sort $(shell find $(SRC_DIR) -name '*.cpp'))
-OBJECTS = $(SRCS:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
-DEPENDENCIES = $(OBJECTS:%.o=%.d)
+CLIENT_DIR = $(SRC_DIR)/$(CLIENT)
+SERVER_DIR = $(SRC_DIR)/$(SERVER)
+
+CLIENT_SRCS := $(sort $(shell find $(CLIENT_DIR) -name '*.cpp'))
+SERVER_SRCS := $(sort $(shell find $(SERVER_DIR) -name '*.cpp'))
+
+CLIENT_OBJECTS = $(CLIENT_SRCS:$(CLIENT_DIR)/%.cpp=$(OBJ_DIR)/$(CLIENT)/%.o)
+SERVER_OBJECTS = $(SERVER_SRCS:$(SERVER_DIR)/%.cpp=$(OBJ_DIR)/$(SERVER)/%.o)
+
+CLIENT_DEPENDENCIES = $(CLIENT_OBJECTS:%.o=%.d)
+SERVER_DEPENDENCIES = $(SERVER_OBJECTS:%.o=%.d)
 
 .PHONY: all clean help run debug optimize optimize3
-
-all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER) 
 
 debug: CXXFLAGS += -g
 debug: all
@@ -70,19 +75,30 @@ help:
 # %:
 #     @:
 
-# This ensures make will not complain if these files don't exist *yet*
--include $(DEPENDENCIES)
+all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER)
 
-# Build executable and link objects
-$(BIN_DIR)/$(TARGET): $(OBJECTS)
-	@echo $(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
+# This ensures make will not complain if these files don't exist *yet*
+-include $(CLIENT_DEPENDENCIES) $(SERVER_DEPENDENCIES)
+
+$(BIN_DIR)/$(CLIENT): $(CLIENT_OBJECTS)
+	@echo $(CXX) $(CXXFLAGS) $^ -o $@
 	@mkdir -p $(@D)
-	@$(CXX) $(CXXFLAGS) $(LFLAGS) $^ -o $@
+	@$(CXX) $(CXXFLAGS) $^ -o $@
+
+$(BIN_DIR)/$(SERVER): $(SERVER_OBJECTS)
+	@echo $(CXX) $(CXXFLAGS) $^ -o $@
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) $^ -o $@
 
 # Compile source code to object files 
 # the -MMD flag will ensure that dependencies for the source files i.e. headers will be included
 # changes to the header files will trigger a re-compile
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(CLIENT_OBJECTS): $(CLIENT_SRCS)
+	@echo $(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+
+$(SERVER_OBJECTS): $(SERVER_SRCS)
 	@echo $(CXX) $(CXXFLAGS) -MMD -c $< -o $@
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
