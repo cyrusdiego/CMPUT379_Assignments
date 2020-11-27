@@ -1,8 +1,10 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
+#include <limits.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -30,6 +32,8 @@ class Client {
     sockaddr_in server_socket;
     int sock;
     Logger logger;
+    int pid;
+    char machine_name[_POSIX_HOST_NAME_MAX];
 };
 
 #endif

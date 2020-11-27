@@ -3,10 +3,13 @@
 */
 #include "../../include/client.hpp"
 
-Client::Client(std::string port, std::string ip) : buffer(MAX_BUF_LENGTH), logger() {
+Client::Client(std::string port, std::string ip) : buffer(MAX_BUF_LENGTH), logger("") {
     server_socket.sin_addr.s_addr = inet_addr(ip.c_str());
     server_socket.sin_family = AF_INET;
     server_socket.sin_port = htons(stoi(port));
+    pid = getpid();
+    gethostname(machine_name, _POSIX_HOST_NAME_MAX);
+    std::cout << machine_name << std::endl;
 }
 
 int Client::Send(std::string req) {
