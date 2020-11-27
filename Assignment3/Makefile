@@ -31,6 +31,10 @@ COMMON_DEPENDENCIES = $(COMMON_OBJECTS:%.o=%.d)
 
 .PHONY: all clean help run 
 
+all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER)
+	# TODO: REMOVE THIS
+	$(shell chmod +x bin/client bin/server)
+
 clean:
 	rm -rf $(BIN_DIR)
 	rm -rf $(OBJ_DIR)
@@ -71,10 +75,6 @@ help:
 # %:
 #     @:
 
-all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER)
-	# TODO: REMOVE THIS
-	$(shell chmod +x bin/client bin/server)
-
 # This ensures make will not complain if these files don't exist *yet*
 -include $(CLIENT_DEPENDENCIES) $(SERVER_DEPENDENCIES) $(COMMON_DEPENDENCIES)
 
@@ -83,10 +83,10 @@ $(BIN_DIR)/$(CLIENT): $(CLIENT_OBJECTS) $(COMMON_OBJECTS)
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) $^ -o $@
 
-# $(BIN_DIR)/$(SERVER): $(SERVER_OBJECTS) $(COMMON_OBJ)
-# 	@echo $(CXX) $(CXXFLAGS) $^ -o $@
-# 	@mkdir -p $(@D)
-# 	@$(CXX) $(CXXFLAGS) $^ -o $@
+$(BIN_DIR)/$(SERVER): $(SERVER_OBJECTS) $(COMMON_OBJECTS)
+	@echo $(CXX) $(CXXFLAGS) $^ -o $@
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) $^ -o $@
 
 # Compile source code to object files 
 # the -MMD flag will ensure that dependencies for the source files i.e. headers will be included
@@ -96,10 +96,10 @@ $(OBJ_DIR)/$(CLIENT)/%.o: $(SRC_DIR)/$(CLIENT)/%.cpp
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
 
-# $(SERVER_OBJECTS): $(SERVER_SRCS)
-# 	@echo $(CXX) $(CXXFLAGS) -MMD -c $< -o $@
-# 	@mkdir -p $(@D)
-# 	@$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+$(OBJ_DIR)/$(SERVER)/%.o: $(SRC_DIR)/$(SERVER)/%.cpp 
+	@echo $(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+	@mkdir -p $(@D)
+	@$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo $(CXX) $(CXXFLAGS) -MMD -c $< -o $@
