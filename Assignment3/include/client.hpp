@@ -4,6 +4,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,6 +27,7 @@ class Client {
     ~Client();
     int Send(std::string job);
     int CreateSocket();
+    void LogJob(std::string job);
 
    private:
     client_statistics stats;
