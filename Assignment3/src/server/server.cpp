@@ -1,108 +1,179 @@
+#include "../../include/server.hpp"
 
-#include <arpa/inet.h>
-#include <poll.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include "../../include/helpers.hpp"
-#include "../../include/tands.hpp"
-
-struct server_stats {
-    int transaction_number = 0;
-};
-
-server_stats statistics;
-
-int parse_job(std::string job) {
-    int num = stoi(job.substr(1, job.length()));
-
-    if (num < 0) {
-        return -1;
-    }
-
-    return num;
-}
-/**
- * Ensures:
- * - Valid number of input provided
- * - validate if passed arguments are valid port
- */
-std::string parse_input(int argc, char **argv) {
-    if (argc > 2 || argc <= 1 || !is_valid_port(argv[1])) {
-        perror("Invalid arguments");
-        exit(-1);
-    }
-    return argv[1];
-}
-
-int main(int argc, char *argv[]) {
-    std::string port = parse_input(argc, argv);
-    //TODO: should i close connection on any fail
-    // code from eClass, modified to accept port from input
-    struct sockaddr_in server, client;
+Server::Server(std::string port) : logger() {
+    // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(stoi(port));
+}
 
-    int socket_desc, client_sock, read_size, c = sizeof(client);
-    const unsigned int MAX_BUF_LENGTH = 1024;
-    std::vector<char> buffer(MAX_BUF_LENGTH);
-    std::string req, resp;
-
-    // Create socket
-    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_desc == -1) {
-        printf("Could not create socket");
+int Server::setup() {
+    // Create socket and store socket descriptor
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd < 0) {
+        perror("Could not create socket");
         return -1;
     }
 
-    // Bind
-    if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
-        perror("Bind failed");
+    // Make socket descriptor reusable
+    rc = setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on));
+    if (rc < 0) {
+        perror("Could not make socket descriptor reusable");
+        close(server_fd);
         return -1;
     }
 
-    poll_fd.fd = socket_desc;
-    poll_fd.events = POLLIN;
-    int timeout = 30000;  // 30 sec
-
-    listen(socket_desc, 100);
-    client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
-    if (client_sock < 0) {
-        perror("Accept failed");
+    // Make socket descriptor non blocking
+    rc = ioctl(server_fd, FIONBIO, (char *)&on);
+    if (rc < 0) {
+        perror("Could not make socket nonblocking");
+        close(server_fd);
         return -1;
     }
 
-    // Receive a message from client
-    int n, job_count = 0;
-    while ((read_size = recv(client_sock, &buffer[0], buffer.size(), 0)) > 0) {
-        req.append(buffer.cbegin(), buffer.cend());
-
-        // Do work
-        if ((n = parse_job(req)) < 0) {
-            continue;
-        }
-        Trans(n);
-        statistics.transaction_number++;
-
-        // Send response back to client
-        std::stringstream resp;
-        resp << "D" << ++job_count;
-        write(client_sock, resp.str().c_str(), resp.str().length());
+    // Bind socket
+    rc = bind(server_fd, (struct sockaddr *)&server, sizeof(server));
+    if (rc < 0) {
+        perror("Could not bind socket");
+        close(server_fd);
+        return -1;
     }
 
-    if (read_size == 0) {
-        puts("Client disconnected");
-        fflush(stdout);
-    } else if (read_size == -1) {
-        perror("recv failed");
+    // Listen (second param is max number of connections)
+    rc = listen(server_fd, 100);
+    if (rc < 0) {
+        perror("Could not listen to socket");
+        close(server_fd);
+        return -1;
     }
+
+    memset(fds, 0, sizeof(fds));
+    memset(buffer, 0, MAX_BUF_LENGTH);
+    // Setup listenting socket
+    fds[0].fd = server_fd;
+    fds[0].events = POLLIN;
 
     return 0;
+}
+
+// Referenced:
+// https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_71/rzab6/poll.htm
+int Server::run() {
+    do {
+        rc = poll(fds, num_fds, TIMEOUT);
+        if (rc < 0) {
+            perror("Polling failed");
+            return -1;
+        }
+        if (rc == 0) {
+            printf("TIMED OUT!");
+            return 0;
+        }
+
+        int current_size = num_fds;
+        for (int i = 0; i < current_size; i++) {
+            // if (fds[i].revents == 0) continue;
+            bool connected = true;
+
+            if (fds[i].revents == POLLERR || fds[i].revents == POLLNVAL) {
+                printf("Error, unexpected result: %d\n", fds[i].revents);
+                run_server = false;
+                break;
+            } else if (fds[i].revents == POLLHUP) {
+                close(fds[i].fd);
+                fds[i].fd = -1;
+                compress_array = true;
+                connected = false;
+            }
+
+            if (connected) {
+                // This is the server socket
+                if (fds[i].fd == server_fd) {
+                    do {
+                        client_sd = accept(server_fd, NULL, NULL);
+                        if (client_sd < 0) {
+                            if (errno != EWOULDBLOCK) {
+                                perror("Accept failed");
+                                run_server = false;
+                            }
+                            break;
+                        }
+
+                        printf("New connection %d\n", client_sd);
+                        fds[num_fds].fd = client_sd;
+                        fds[num_fds].events = POLLIN;
+                        num_fds++;
+                    } while (client_sd != -1);
+                } else {  // this is a client fd
+
+                    bool close_conn = false;
+
+                    do {
+                        rc = recv(fds[i].fd, buffer, MAX_BUF_LENGTH, 0);
+                        if (rc < 0) {
+                            if (errno != EWOULDBLOCK) {
+                                perror("Recieve failed");
+                                close_conn = true;
+                            }
+                            break;
+                        }
+
+                        if (rc == 0) {
+                            printf("Connection closed\n");
+                            close_conn = true;
+                            break;
+                        }
+
+                        auto job = parse_job(buffer);
+                        if (job.second < 0) {
+                            continue;
+                        }
+
+                        Trans(job.second);
+                        statistics.transaction_number++;
+                        std::string s = "D" + std::to_string(++statistics.job_count);
+                        memset(buffer, 0, MAX_BUF_LENGTH);
+                        strcpy(buffer, s.c_str());
+                        buffer[s.length()] = '\0';
+
+                        rc = send(fds[i].fd, buffer, s.length() + 1, 0);
+                        if (rc < 0) {
+                            perror("Send failed");
+                            close_conn = true;
+                            break;
+                        }
+                    } while (1);
+                    if (close_conn) {
+                        close(fds[i].fd);
+                        fds[i].fd = -1;
+                        compress_array = true;
+                    }
+                }
+            }
+        }
+
+        // To prevent fragmented fds we push empty to the back
+        if (compress_array) {
+            compress_array = false;
+            for (int i = 0; i < num_fds; i++) {
+                if (fds[i].fd == -1) {
+                    for (int j = i; j < num_fds; j++) {
+                        fds[j].fd = fds[j + 1].fd;
+                    }
+                    i--;
+                    num_fds--;
+                }
+            }
+        }
+    } while (run_server);
+
+    return 0;
+}
+
+void Server::cleanup() {
+    for (int i = 0; i < num_fds; i++) {
+        if (fds[i].fd >= 0) {
+            close(fds[i].fd);
+        }
+    }
 }

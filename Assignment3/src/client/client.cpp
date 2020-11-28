@@ -25,13 +25,9 @@ Client::Client(std::string port, std::string ip) : logger() {
     memset(resp, 0, 1024);
 }
 
-int Client::Send(std::string req) {
-    // Connect to socket
-    if (connect(sock, (struct sockaddr *)&server_socket, sizeof(server_socket)) < 0) {
-        perror("Connect failed");
-        return -1;
-    }
+Client::~Client() {}
 
+int Client::Send(std::string req) {
     // Send to server
     if (send(sock, req.c_str(), req.length(), 0) < 0) {
         printf("Send failed");
@@ -45,14 +41,18 @@ int Client::Send(std::string req) {
         printf("Recieve failed");
         return -1;
     }
-
     LogJob(resp);
-    // close(sock);
+
     return 0;
 }
 
-int Client::CreateSocket() {
+int Client::CreateAndConnectToSocket() {
     sock = socket(AF_INET, SOCK_STREAM, 0);
+    // Connect to socket
+    if (connect(sock, (struct sockaddr *)&server_socket, sizeof(server_socket)) < 0) {
+        perror("Connect failed");
+        return -1;
+    }
     return sock;
 }
 

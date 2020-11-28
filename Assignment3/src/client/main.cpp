@@ -4,8 +4,6 @@
 #include "../../include/client.hpp"
 #include "../../include/helpers.hpp"
 
-Client *client;
-
 /**
  * Ensures:
  * - Valid number of input provided
@@ -25,8 +23,8 @@ int main(int argc, char *argv[]) {
     std::string ip = args.second;
     std::string req;
 
-    client = new Client(port, ip);
-    if (client->CreateSocket() < 0) {
+    Client client(port, ip);
+    if (client.CreateAndConnectToSocket() < 0) {
         return -1;
     }
 
@@ -34,7 +32,7 @@ int main(int argc, char *argv[]) {
         auto job = parse_job(req);
 
         if (job.first == 'T') {
-            if (client->Send(req) < 0) {
+            if (client.Send(req) < 0) {
                 return -1;
             }
         } else {

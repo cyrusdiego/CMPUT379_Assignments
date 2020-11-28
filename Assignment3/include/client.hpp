@@ -26,7 +26,7 @@ class Client {
     Client(std::string port, std::string ip);
     ~Client();
     int Send(std::string job);
-    int CreateSocket();
+    int CreateAndConnectToSocket();
     void LogJob(std::string job);
 
    private:
