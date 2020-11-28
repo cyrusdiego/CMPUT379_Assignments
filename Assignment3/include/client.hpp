@@ -31,12 +31,10 @@ class Client {
 
    private:
     client_statistics stats;
-    std::vector<char> buffer;
+    char resp[MAX_BUF_LENGTH], machine_name[_POSIX_HOST_NAME_MAX];
     sockaddr_in server_socket;
-    int sock;
+    int sock, pid;
     Logger logger;
-    int pid;
-    char machine_name[_POSIX_HOST_NAME_MAX];
 };
 
 #endif

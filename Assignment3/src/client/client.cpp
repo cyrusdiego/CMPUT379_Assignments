@@ -3,7 +3,7 @@
 */
 #include "../../include/client.hpp"
 
-Client::Client(std::string port, std::string ip) : buffer(MAX_BUF_LENGTH), logger() {
+Client::Client(std::string port, std::string ip) : logger() {
     server_socket.sin_addr.s_addr = inet_addr(ip.c_str());
     server_socket.sin_family = AF_INET;
     server_socket.sin_port = htons(stoi(port));
@@ -21,11 +21,11 @@ Client::Client(std::string port, std::string ip) : buffer(MAX_BUF_LENGTH), logge
            << "Using server address " << ip << std::endl
            << "Host " << machine_name << "." << pid << std::endl;
     logger.Log(stream.str());
+
+    memset(resp, 0, 1024);
 }
 
 int Client::Send(std::string req) {
-    std::string resp;
-    LogJob(req);
     // Connect to socket
     if (connect(sock, (struct sockaddr *)&server_socket, sizeof(server_socket)) < 0) {
         perror("Connect failed");
@@ -37,16 +37,17 @@ int Client::Send(std::string req) {
         printf("Send failed");
         return -1;
     }
+    LogJob(req);
 
     // Receive a reply from the server
-    if (recv(sock, &buffer[0], buffer.size(), 0) < 0) {
+    memset(resp, 0, MAX_BUF_LENGTH);
+    if (recv(sock, resp, MAX_BUF_LENGTH, 0) < 0) {
         printf("Recieve failed");
         return -1;
     }
 
-    resp.append(buffer.cbegin(), buffer.cend());
     LogJob(resp);
-    close(sock);
+    // close(sock);
     return 0;
 }
 
