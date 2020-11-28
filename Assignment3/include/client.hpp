@@ -1,9 +1,12 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 #include <limits.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
