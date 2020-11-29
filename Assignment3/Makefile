@@ -29,7 +29,7 @@ CLIENT_DEPENDENCIES = $(CLIENT_OBJECTS:%.o=%.d)
 SERVER_DEPENDENCIES = $(SERVER_OBJECTS:%.o=%.d)
 COMMON_DEPENDENCIES = $(COMMON_OBJECTS:%.o=%.d)
 
-.PHONY: all clean help run 
+.PHONY: all clean
 
 all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER)
 	# TODO: REMOVE THIS
@@ -38,42 +38,8 @@ all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER)
 clean:
 	rm -rf $(BIN_DIR)
 	rm -rf $(OBJ_DIR)
-
-help:
-	@printf "\
-	Usage: make [target] [options] \n\
-	\n\
-	Targets:\n\
-	        all         Builds executable (default target), \n\
-		run 	    Runs the exectuable with the passed arguments (look at options below) \n\
-		clean       Deletes bin/ and obj/ directories storing the object files and executable \n\
-		debug       Builds the executable with the -g flag (need to run make clean first!) \n\
-		optimize    Builds the executable with the -O flag (need to run make clean first!) \n\
-		optimize3   Builds the exectuable with the -O3 flag (need to run make clean first!) \n\
-		help        Prints these instructions \n\
-	\n\
-	Options: \n\
-	    nthreads <id> <path_to_input_file>         Possible options for the [run] target. \n\\n\
-		nthreads = number of threads (mandatory)\n\
-		<id> = id of log file (optional)\n\
-		<path_to_input_file> = relative (to root directory) path to input file (optional) \n\\n"
-
-# credits to Johan Dahlin and Idelic 
-# https://stackoverflow.com/questions/2214575/passing-arguments-to-make-run
-# If the first argument is "run"...
-# ifeq (run,$(firstword $(MAKECMDGOALS)))
-#   # use the rest as arguments for "run"
-#   RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
-#   # ...and turn them into do-nothing targets
-#   $(eval $(RUN_ARGS):;@:)
-# endif
-
-# run: all
-# 	@echo "Starting program: $(TARGET) $(RUN_ARGS)"
-# 	./$(BIN_DIR)/$(TARGET) $(RUN_ARGS)
-
-# %:
-#     @:
+	rm client.pdf
+	rm server.pdf
 
 # This ensures make will not complain if these files don't exist *yet*
 -include $(CLIENT_DEPENDENCIES) $(SERVER_DEPENDENCIES) $(COMMON_DEPENDENCIES)
