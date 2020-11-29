@@ -1,0 +1,55 @@
+.TH CLIENT 1 "November 28, 2020" 
+.SH NAME
+client \- Run a client program that will send "work" to a server or simulate a "lull" (sleep). The 
+client will either read input in the form of T<n> or S<n> from the command line or from an input file.
+.SH SYNOPSIS
+\fBclient\fP \fIport_number\fP \fIip_address\fP [< \fIinput_file\fP]
+.SH DESCRIPTION
+.TP
+\fBclient\fP run a client program on designated \fIport_number\fP and \fIip_address\fP
+.TP
+\fBport_number\fP the port the server is listening for messages, must be in range 5,000 - 64,000.
+.TP
+\fBip_address\fP the IP address of the machine that is hosting the server
+
+.SH OPTION
+.TP
+\fBinput_file\fP path to input file to feed input to the client
+
+.SH REQUIRED FILES 
+.TP
+\fCMakefile\fR
+makefile to compile client program
+.TP
+\fC/src/client/main.cpp\fR
+driver code that will initiate the client program and that will read from stdin
+.TP
+\fC/src/client/client.cpp\fR
+source code for client program 
+.TP
+\fC/src/logger.cpp\fR
+logger class to create and write to a log file
+.TP
+\fC/src/tands.cpp\fR
+helper file containing Trans and Sleep functions (provided from eClass)
+.TP
+\fC/src/helper.cpp\fR
+helper file that holds helper functions
+.TP
+\fC/include/client.cpp\fR
+header file the has definitions of client class
+.TP
+\fC/include/logger.cpp\fR
+header file the has definitions of logger class
+.TP
+\fC/include/tands.cpp\fR
+header file the has definitions of Trans and Sleep functions
+.TP
+\fC/include/helper.cpp\fR
+header file that has definitions for helper functions
+
+.SH AUTHOR
+Cyrus Diego
+
+.SH SEE ALSO
+server.pdf for the man page for the corresponding server program
