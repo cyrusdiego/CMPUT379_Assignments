@@ -54,7 +54,7 @@ $(BIN_DIR)/$(SERVER): $(SERVER_OBJECTS) $(COMMON_OBJECTS)
 	@echo $(CXX) $(CXXFLAGS) $^ -o $@
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) $^ -o $@
-	@groff -Tpdf -man client.1 > server.pdf
+	@groff -Tpdf -man server.1 > server.pdf
 
 # Compile source code to object files 
 # the -MMD flag will ensure that dependencies for the source files i.e. headers will be included
