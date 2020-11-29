@@ -32,8 +32,6 @@ COMMON_DEPENDENCIES = $(COMMON_OBJECTS:%.o=%.d)
 .PHONY: all clean debug
 
 all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER)
-	# TODO: REMOVE THIS
-	$(shell chmod +x bin/client bin/server)
 
 clean:
 	rm -rf $(BIN_DIR)
