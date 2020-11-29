@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "helpers.hpp"
-#include "logger.hpp"
 #include "tands.hpp"
 
 const unsigned int MAX_BUF_LENGTH = 1024;
@@ -46,7 +45,6 @@ class Server {
     void UpdateStats(std::string machine);
 
    private:
-    Logger logger;
     server_stats stats;
     struct sockaddr_in server;
     char buffer[MAX_BUF_LENGTH];

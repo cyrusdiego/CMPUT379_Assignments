@@ -1,6 +1,6 @@
 #include "../../include/server.hpp"
 
-Server::Server(std::string port) : logger() {
+Server::Server(std::string port) : {
     // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
