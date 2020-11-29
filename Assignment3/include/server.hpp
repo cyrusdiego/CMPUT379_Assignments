@@ -32,7 +32,7 @@ const unsigned int MAX_CONNECTIONS = 100;
 struct server_stats {
     std::unordered_map<std::string, int> transaction_numbers;
     int job_count = 0;
-    std::chrono::duration<double> server_duration;
+    std::chrono::time_point<std::chrono::system_clock> start, end;
 };
 
 class Server {

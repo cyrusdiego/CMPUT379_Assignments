@@ -5,17 +5,23 @@ Server::Server(std::string port) {
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(stoi(port));
+    std::cout << "Using port " << port << std::endl;
 }
 
 Server::~Server() {
     std::stringstream stream;
+    stream << "\nSUMMARY" << std::endl;
     for (auto entry : stats.transaction_numbers) {
         stream << std::right << std::setw(4) << entry.second;
         stream << " from " << entry.first << std::endl;
     }
-    double trans_per_sec = stats.job_count / stats.server_duration.count();
-    stream << std::right << std::setprecision(2) << trans_per_sec;
-    stream << " transaction/sec  (" << stats.job_count << "/" << std::setprecision(2) << stats.server_duration.count() << std::endl;
+
+    std::chrono::duration<double> time = stats.end - stats.start;
+    std::cout << time.count();
+    double transactions_per_sec = stats.job_count / time.count();
+
+    stream << std::right << std::setprecision(2) << transactions_per_sec;
+    stream << " transaction/sec  (" << stats.job_count << "/" << std::setprecision(2) << time.count() << ")" << std::endl;
     std::cout << stream.str() << std::endl;
 
     close(server_fd);
@@ -73,7 +79,7 @@ int Server::Setup() {
 // Referenced:
 // https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_71/rzab6/poll.htm
 int Server::Run() {
-    auto start = std::chrono::system_clock::now();
+    bool timer_started = false;
     do {
         rc = poll(fds, num_fds, TIMEOUT);
         if (rc < 0) {
@@ -81,7 +87,10 @@ int Server::Run() {
             return -1;
         }
         if (rc == 0) {
-            printf("TIMED OUT!\n");
+            auto end = std::chrono::system_clock::now();
+            std::chrono::duration<double> time = end - stats.start;
+            std::cout << "SERVER TIMED OUT! " << std::endl;
+            std::cout << time.count() << std::endl;
             return 0;
         }
 
@@ -95,7 +104,6 @@ int Server::Run() {
                 run_server = false;
                 break;
             } else if (fds[i].revents == POLLHUP) {
-                std::cout << "CONNECTION CLOSED" << std::endl;
                 close(fds[i].fd);
                 fds[i].fd = -1;
                 compress_array = true;
@@ -115,7 +123,6 @@ int Server::Run() {
                             break;
                         }
 
-                        printf("New connection %d\n", client_sd);
                         fds[num_fds].fd = client_sd;
                         fds[num_fds].events = POLLIN;
                         num_fds++;
@@ -123,7 +130,7 @@ int Server::Run() {
                 } else {  // this is a client fd
 
                     // Check if there's any changes to the fd
-                    rc = poll(&fds[i], 1, 500);
+                    rc = poll(&fds[i], 1, 100);
                     if (rc < 0) {
                         perror("Poll failed");
                         return -1;
@@ -142,10 +149,14 @@ int Server::Run() {
                     }
 
                     if (rc == 0) {
-                        printf("Connection closed\n");
                         close_conn = true;
                     }
+
                     if (!close_conn) {
+                        if (!timer_started) {
+                            stats.start = std::chrono::system_clock::now();
+                            timer_started = true;
+                        }
                         // Parse client message
                         std::string req = std::string(buffer);
                         int del = req.find(' ');
@@ -166,6 +177,7 @@ int Server::Run() {
                         // Update stats and log complete
                         UpdateStats(machine);
                         LogJob(-1, machine);
+                        stats.end = std::chrono::system_clock::now();
 
                         // Build message to client
                         std::string s = "D" + std::to_string(++stats.job_count);
@@ -206,9 +218,6 @@ int Server::Run() {
         }
         
     } while (run_server);
-
-    auto end = std::chrono::system_clock::now();
-    stats.server_duration = end - start;
     return 0;
 }
 
@@ -221,13 +230,12 @@ void Server::LogJob(int job, std::string client_name) {
     if (job != -1) {
         stream << "# ";
         stream << std::right << std::setw(3) << std::to_string(stats.job_count) << " ";
-        stream << "(T" << std::right << std::setw(4) << std::to_string(job) << ") ";
+        stream << "(T" << std::right << std::setw(3) << std::to_string(job) << ") ";
         stream << "from " << client_name;
     } else {
         stream << "# ";
         stream << std::right << std::setw(3) << std::to_string(stats.job_count) << " ";
-        stream << "(Done) from "
-               << "from " << client_name;
+        stream << std::setw(5) << "(Done) from " << client_name;
     }
 
     std::cout << std::fixed << std::setprecision(2) << time << ": " << stream.str() << std::endl;
