@@ -21,7 +21,6 @@ const unsigned int MAX_BUF_LENGTH = 1024;
 
 struct client_statistics {
     int transaction_count = 0;
-    int sleep_count = 0;
 };
 
 class Client {
@@ -38,6 +37,7 @@ class Client {
     sockaddr_in server_socket;
     int sock, pid;
     Logger logger;
+    std::string title;
 };
 
 #endif

@@ -15,9 +15,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "helpers.hpp"
@@ -28,20 +30,24 @@ const unsigned int MAX_BUF_LENGTH = 1024;
 const unsigned int MAX_CONNECTIONS = 100;
 
 struct server_stats {
-    int transaction_number = 0;
+    std::unordered_map<std::string, int> transaction_numbers;
     int job_count = 0;
+    std::chrono::duration<double> server_duration;
 };
 
 class Server {
    public:
     Server(std::string port);
-    int setup();
-    int run();
-    void cleanup();
+    ~Server();
+    int Setup();
+    int Run();
+    void Cleanup();
+    void LogJob(int job, std::string client_name);
+    void UpdateStats(std::string machine);
 
    private:
     Logger logger;
-    server_stats statistics;
+    server_stats stats;
     struct sockaddr_in server;
     char buffer[MAX_BUF_LENGTH];
     struct pollfd fds[MAX_CONNECTIONS];

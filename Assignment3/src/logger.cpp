@@ -11,10 +11,6 @@ void Logger::SetTitle(std::string title) {
     output.close();
 }
 
-void Logger::HasInCol(bool hasInCol) {
-    this->hasInCol = hasInCol;
-}
-
 void Logger::Log(double time, std::string message, std::string col) {
     std::ofstream output;
     std::stringstream ss;
@@ -40,4 +36,12 @@ void Logger::Log(std::string message) {
     output.open(title, std::ofstream::out | std::ofstream::app);
     output << message << std::flush;
     output.close();
+}
+
+void Logger::PrintToScreen(std::string message) {
+    std::cout << message << std::endl;
+}
+
+void Logger::PrintToScreen(double time, std::string message) {
+    std::cout << std::fixed << std::setprecision(2) << time << ": " << message;
 }

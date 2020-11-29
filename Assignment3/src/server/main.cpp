@@ -16,13 +16,13 @@ std::string parse_input(int argc, char **argv) {
 int main(int argc, char *argv[]) {
     std::string port = parse_input(argc, argv);
     Server server(port);
-    if (server.setup() < 0) {
+    if (server.Setup() < 0) {
         return -1;
     }
-    if (server.run() < 0) {
-        server.cleanup();
+    if (server.Run() < 0) {
+        server.Cleanup();
         return -1;
     }
-    server.cleanup();
+    server.Cleanup();
     return 0;
 }

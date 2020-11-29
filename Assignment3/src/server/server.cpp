@@ -7,7 +7,21 @@ Server::Server(std::string port) : logger() {
     server.sin_port = htons(stoi(port));
 }
 
-int Server::setup() {
+Server::~Server() {
+    std::stringstream stream;
+    for (auto entry : stats.transaction_numbers) {
+        stream << std::right << std::setw(4) << entry.second;
+        stream << " from " << entry.first << std::endl;
+    }
+    double trans_per_sec = stats.job_count / stats.server_duration.count();
+    stream << std::right << std::setprecision(2) << trans_per_sec;
+    stream << " transaction/sec  (" << stats.job_count << "/" << std::setprecision(2) << stats.server_duration.count() << std::endl;
+    logger.PrintToScreen(stream.str());
+
+    close(server_fd);
+}
+
+int Server::Setup() {
     // Create socket and store socket descriptor
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
@@ -58,7 +72,8 @@ int Server::setup() {
 
 // Referenced:
 // https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_71/rzab6/poll.htm
-int Server::run() {
+int Server::Run() {
+    auto start = std::chrono::system_clock::now();
     do {
         rc = poll(fds, num_fds, TIMEOUT);
         if (rc < 0) {
@@ -124,18 +139,34 @@ int Server::run() {
                             break;
                         }
 
-                        auto job = parse_job(buffer);
+                        // Parse client message
+                        std::string req = std::string(buffer);
+                        int del = req.find(' ');
+                        std::string transaction = req.substr(0, del);
+                        std::string machine = req.substr(del + 1, std::string::npos);
+                        auto job = parse_job(transaction);
+
                         if (job.second < 0) {
                             continue;
                         }
 
+                        // Log message
+                        LogJob(job.second, machine);
+
+                        // Do work
                         Trans(job.second);
-                        statistics.transaction_number++;
-                        std::string s = "D" + std::to_string(++statistics.job_count);
+
+                        // Update stats and log complete
+                        UpdateStats(machine);
+                        LogJob(-1, machine);
+
+                        // Build message to client
+                        std::string s = "D" + std::to_string(++stats.job_count);
                         memset(buffer, 0, MAX_BUF_LENGTH);
                         strcpy(buffer, s.c_str());
                         buffer[s.length()] = '\0';
 
+                        // Send message to client
                         rc = send(fds[i].fd, buffer, s.length() + 1, 0);
                         if (rc < 0) {
                             perror("Send failed");
@@ -153,6 +184,7 @@ int Server::run() {
         }
 
         // To prevent fragmented fds we push empty to the back
+        // TODO: extract to function?
         if (compress_array) {
             compress_array = false;
             for (int i = 0; i < num_fds; i++) {
@@ -167,10 +199,42 @@ int Server::run() {
         }
     } while (run_server);
 
+    auto end = std::chrono::system_clock::now();
+    stats.server_duration = end - start;
     return 0;
 }
 
-void Server::cleanup() {
+void Server::LogJob(int job, std::string client_name) {
+    // https://stackoverflow.com/questions/40705817/c-chrono-get-seconds-with-a-precision-of-3-decimal-places
+    const auto current_time = std::chrono::system_clock::now();
+    double time = std::chrono::duration<double>(current_time.time_since_epoch()).count();
+
+    std::stringstream stream;
+    if (job == -1) {
+        stream << "# ";
+        stream << std::right << std::setw(3) << std::to_string(stats.job_count) << " ";
+        stream << "(T" << std::right << std::setw(4) << std::to_string(job) << ") ";
+        stream << "from " << client_name;
+        logger.PrintToScreen(time, stream.str());
+    } else {
+        stream << "# ";
+        stream << std::right << std::setw(3) << std::to_string(stats.job_count) << " ";
+        stream << "(Done) from "
+               << "from " << client_name;
+        logger.PrintToScreen(time, stream.str());
+    }
+}
+
+void Server::UpdateStats(std::string machine) {
+    if (stats.transaction_numbers.find(machine) == stats.transaction_numbers.end()) {
+        std::pair<std::string, int> new_entry(machine, 1);
+        stats.transaction_numbers.insert(new_entry);
+    } else {
+        stats.transaction_numbers.at(machine)++;
+    }
+}
+
+void Server::Cleanup() {
     for (int i = 0; i < num_fds; i++) {
         if (fds[i].fd >= 0) {
             close(fds[i].fd);

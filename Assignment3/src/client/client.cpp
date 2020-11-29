@@ -12,24 +12,29 @@ Client::Client(std::string port, std::string ip) : logger() {
     gethostname(machine_name, _POSIX_HOST_NAME_MAX);
 
     std::stringstream stream;
-    stream << machine_name << "." << pid;
-    logger.SetTitle(stream.str());
-    logger.HasInCol(true);
+    stream << machine_name << '.' << std::to_string(pid);
+    title = stream.str();
+    logger.SetTitle(title);
 
     stream.str(std::string(""));
     stream << "Using port " << port << std::endl
            << "Using server address " << ip << std::endl
            << "Host " << machine_name << "." << pid << std::endl;
     logger.Log(stream.str());
-
-    memset(resp, 0, 1024);
 }
 
-Client::~Client() {}
+Client::~Client() {
+    std::string summary_stat = "Sent " + std::to_string(stats.transaction_count) + " Transactions";
+    logger.Log(summary_stat);
+
+    close(sock);
+}
 
 int Client::Send(std::string req) {
+    stats.transaction_count++;
+    std::string msg = req + ' ' + title;
     // Send to server
-    if (send(sock, req.c_str(), req.length(), 0) < 0) {
+    if (send(sock, msg.c_str(), msg.length(), 0) < 0) {
         printf("Send failed");
         return -1;
     }
@@ -53,6 +58,7 @@ int Client::CreateAndConnectToSocket() {
         perror("Connect failed");
         return -1;
     }
+    memset(resp, 0, 1024);
     return sock;
 }
 
@@ -63,11 +69,16 @@ void Client::LogJob(std::string job) {
 
     std::stringstream stream;
     char type = job[0];
-    if (type == 'T' || type == 'D') {
+    if (type == 'T') {
         stream << "Send (" << type;
         stream << std::fixed << std::right << std::setw(3) << job.substr(1, std::string::npos);
         stream << ")" << std::endl;
         logger.Log(time, stream.str(), job);
+    } else if (type == 'D') {
+        stream << "Recv (" << type;
+        stream << std::fixed << std::right << std::setw(3) << job.substr(1, std::string::npos);
+        stream << ")" << std::endl;
+        logger.Log(time, stream.str());
     } else if (type == 'S') {
         stream << "Sleep " << job.substr(1, std::string::npos) << " units" << std::endl;
         logger.Log(stream.str(), job);
