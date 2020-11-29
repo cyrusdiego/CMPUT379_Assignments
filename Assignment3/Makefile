@@ -29,7 +29,7 @@ CLIENT_DEPENDENCIES = $(CLIENT_OBJECTS:%.o=%.d)
 SERVER_DEPENDENCIES = $(SERVER_OBJECTS:%.o=%.d)
 COMMON_DEPENDENCIES = $(COMMON_OBJECTS:%.o=%.d)
 
-.PHONY: all clean
+.PHONY: all clean debug
 
 all: $(BIN_DIR)/$(CLIENT) $(BIN_DIR)/$(SERVER)
 	# TODO: REMOVE THIS
@@ -40,6 +40,9 @@ clean:
 	rm -rf $(OBJ_DIR)
 	rm client.pdf
 	rm server.pdf
+
+debug: CXXFLAGS += -g
+debug: all
 
 # This ensures make will not complain if these files don't exist *yet*
 -include $(CLIENT_DEPENDENCIES) $(SERVER_DEPENDENCIES) $(COMMON_DEPENDENCIES)
