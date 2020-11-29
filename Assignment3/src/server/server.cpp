@@ -17,7 +17,6 @@ Server::~Server() {
     }
 
     std::chrono::duration<double> time = stats.end - stats.start;
-    std::cout << time.count();
     double transactions_per_sec = stats.job_count / time.count();
 
     stream << std::right << std::setprecision(2) << transactions_per_sec;
@@ -87,10 +86,6 @@ int Server::Run() {
             return -1;
         }
         if (rc == 0) {
-            auto end = std::chrono::system_clock::now();
-            std::chrono::duration<double> time = end - stats.start;
-            std::cout << "SERVER TIMED OUT! " << std::endl;
-            std::cout << time.count() << std::endl;
             return 0;
         }
 
@@ -197,7 +192,7 @@ int Server::Run() {
                         close(fds[i].fd);
                         fds[i].fd = -1;
                         compress_array = true;
-                    }    
+                    }
                 }
             }
         }
@@ -216,7 +211,7 @@ int Server::Run() {
                 }
             }
         }
-        
+
     } while (run_server);
     return 0;
 }
