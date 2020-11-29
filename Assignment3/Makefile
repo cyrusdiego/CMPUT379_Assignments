@@ -78,7 +78,7 @@ help:
 # This ensures make will not complain if these files don't exist *yet*
 -include $(CLIENT_DEPENDENCIES) $(SERVER_DEPENDENCIES) $(COMMON_DEPENDENCIES)
 
-$(BIN_DIR)/$(CLIENT): $(CLIENT_OBJECTS) $(COMMON_OBJECTS)
+$(BIN_DIR)/$(CLIENT): $(CLIENT_OBJECTS) $(COMMON_OBJECTS) output.pdf
 	@echo $(CXX) $(CXXFLAGS) $^ -o $@
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) $^ -o $@
@@ -105,3 +105,6 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo $(CXX) $(CXXFLAGS) -MMD -c $< -o $@
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+
+output.pdf: client.1
+	@groff -Tpdf -man client.1 > output.pdf
