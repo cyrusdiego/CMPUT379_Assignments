@@ -1,5 +1,8 @@
 #include "../../include/server.hpp"
 
+/**
+ * setup sockaddr_in struct for the server
+ */
 Server::Server(std::string port) {
     // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
@@ -8,6 +11,9 @@ Server::Server(std::string port) {
     std::cout << "Using port " << port << std::endl;
 }
 
+/**
+ * When the server is done executing, print summary statistics
+ */
 Server::~Server() {
     std::stringstream stream;
     stream << "\nSUMMARY" << std::endl;
@@ -26,6 +32,9 @@ Server::~Server() {
     close(server_fd);
 }
 
+/**
+ * Create, bind, and listen to socket
+ */
 int Server::Setup() {
     // Create socket and store socket descriptor
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -66,8 +75,10 @@ int Server::Setup() {
         return -1;
     }
 
+    // Setup buffer and set of file descriptors
     memset(fds, 0, sizeof(fds));
     memset(buffer, 0, MAX_BUF_LENGTH);
+
     // Setup listenting socket
     fds[0].fd = server_fd;
     fds[0].events = POLLIN;
@@ -75,8 +86,13 @@ int Server::Setup() {
     return 0;
 }
 
-// Referenced:
-// https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_71/rzab6/poll.htm
+/**
+ * Main server loop that will poll for changes in active clients 
+ * then complete job from client messages
+ * 
+ * Referenced: https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_71/rzab6/poll.htm
+ * on how to use poll()
+ */
 int Server::Run() {
     bool timer_started = false;
     do {
@@ -198,7 +214,6 @@ int Server::Run() {
         }
 
         // To prevent fragmented fds we push empty to the back
-        // TODO: extract to function?
         if (compress_array) {
             compress_array = false;
             for (int i = 0; i < num_fds; i++) {
@@ -216,6 +231,9 @@ int Server::Run() {
     return 0;
 }
 
+/**
+ * Prints to stdout when recieved or completed a job
+ */
 void Server::LogJob(int job, std::string client_name) {
     // https://stackoverflow.com/questions/40705817/c-chrono-get-seconds-with-a-precision-of-3-decimal-places
     const auto current_time = std::chrono::system_clock::now();
@@ -238,6 +256,9 @@ void Server::LogJob(int job, std::string client_name) {
     fflush(stdout);
 }
 
+/**
+ * Updates stats on each client
+ */
 void Server::UpdateStats(std::string machine) {
     if (stats.transaction_numbers.find(machine) == stats.transaction_numbers.end()) {
         std::pair<std::string, int> new_entry(machine, 1);
@@ -247,6 +268,9 @@ void Server::UpdateStats(std::string machine) {
     }
 }
 
+/**
+ * Close connections to clients
+ */
 void Server::Cleanup() {
     for (int i = 0; i < num_fds; i++) {
         if (fds[i].fd >= 0) {

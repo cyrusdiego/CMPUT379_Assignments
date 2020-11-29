@@ -3,6 +3,9 @@
 Logger::Logger() {
 }
 
+/**
+ * Creates log file and sets the title for it
+ */
 void Logger::SetTitle(std::string title) {
     this->title = title;
 
@@ -11,6 +14,9 @@ void Logger::SetTitle(std::string title) {
     output.close();
 }
 
+/**
+ * Logs to the log file
+ */
 void Logger::Log(double time, std::string message, std::string col) {
     std::ofstream output;
     std::stringstream ss;
@@ -21,6 +27,9 @@ void Logger::Log(double time, std::string message, std::string col) {
     output.close();
 }
 
+/**
+ * Logs to the log file
+ */
 void Logger::Log(std::string message, std::string col) {
     std::ofstream output;
     std::stringstream ss;
@@ -31,6 +40,9 @@ void Logger::Log(std::string message, std::string col) {
     output.close();
 }
 
+/**
+ * Logs to the log file
+ */
 void Logger::Log(std::string message) {
     std::ofstream output;
     output.open(title, std::ofstream::out | std::ofstream::app);

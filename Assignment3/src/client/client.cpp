@@ -1,8 +1,8 @@
-/*
-	C ECHO client example using sockets
-*/
 #include "../../include/client.hpp"
 
+/**
+ * Setup client by getting PID, machine name, and setting up logger object and socket struct
+ */
 Client::Client(std::string port, std::string ip) : logger() {
     server_socket.sin_addr.s_addr = inet_addr(ip.c_str());
     server_socket.sin_family = AF_INET;
@@ -23,6 +23,9 @@ Client::Client(std::string port, std::string ip) : logger() {
     logger.Log(stream.str());
 }
 
+/** 
+ * Once client is done executing, show summary stats and close connection
+ */
 Client::~Client() {
     std::string summary_stat = "Sent " + std::to_string(stats.transaction_count) + " Transactions";
     logger.Log(summary_stat);
@@ -30,6 +33,11 @@ Client::~Client() {
     close(sock);
 }
 
+/**
+ * Send message to server
+ * 
+ * We don't close the connection
+ */
 int Client::Send(std::string req) {
     stats.transaction_count++;
     std::string msg = req + ' ' + title;
@@ -51,6 +59,9 @@ int Client::Send(std::string req) {
     return 0;
 }
 
+/**
+ * Create and then connect to socket
+ */
 int Client::CreateAndConnectToSocket() {
     sock = socket(AF_INET, SOCK_STREAM, 0);
     // Connect to socket
@@ -58,10 +69,14 @@ int Client::CreateAndConnectToSocket() {
         perror("Connect failed");
         return -1;
     }
-    memset(resp, 0, 1024);
+    // Prepare buffer
+    memset(resp, 0, MAX_BUF_LENGTH);
     return sock;
 }
 
+/**
+ * Prepares entry into log file and then uses logger object to enter into file
+ */
 void Client::LogJob(std::string job) {
     // https://stackoverflow.com/questions/40705817/c-chrono-get-seconds-with-a-precision-of-3-decimal-places
     const auto current_time = std::chrono::system_clock::now();
