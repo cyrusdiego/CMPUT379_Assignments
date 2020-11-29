@@ -81,7 +81,7 @@ int Server::Run() {
             return -1;
         }
         if (rc == 0) {
-            printf("TIMED OUT!");
+            printf("TIMED OUT!\n");
             return 0;
         }
 
@@ -95,6 +95,7 @@ int Server::Run() {
                 run_server = false;
                 break;
             } else if (fds[i].revents == POLLHUP) {
+                std::cout << "CONNECTION CLOSED" << std::endl;
                 close(fds[i].fd);
                 fds[i].fd = -1;
                 compress_array = true;
@@ -121,24 +122,30 @@ int Server::Run() {
                     } while (client_sd != -1);
                 } else {  // this is a client fd
 
+                    // Check if there's any changes to the fd
+                    rc = poll(&fds[i], 1, 500);
+                    if (rc < 0) {
+                        perror("Poll failed");
+                        return -1;
+                    }
+                    if (rc == 0) {
+                        continue;
+                    }
+
                     bool close_conn = false;
-
-                    do {
-                        rc = recv(fds[i].fd, buffer, MAX_BUF_LENGTH, 0);
-                        if (rc < 0) {
-                            if (errno != EWOULDBLOCK) {
-                                perror("Recieve failed");
-                                close_conn = true;
-                            }
-                            break;
+                    rc = recv(fds[i].fd, buffer, MAX_BUF_LENGTH, 0);
+                    if (rc < 0) {
+                        if (errno != EWOULDBLOCK) {
+                            perror("Recieve failed");
                         }
+                        close_conn = true;
+                    }
 
-                        if (rc == 0) {
-                            printf("Connection closed\n");
-                            close_conn = true;
-                            break;
-                        }
-
+                    if (rc == 0) {
+                        printf("Connection closed\n");
+                        close_conn = true;
+                    }
+                    if (!close_conn) {
                         // Parse client message
                         std::string req = std::string(buffer);
                         int del = req.find(' ');
@@ -171,14 +178,14 @@ int Server::Run() {
                         if (rc < 0) {
                             perror("Send failed");
                             close_conn = true;
-                            break;
                         }
-                    } while (1);
-                    if (close_conn) {
+
+                        memset(buffer, 0, MAX_BUF_LENGTH);
+                    } else {
                         close(fds[i].fd);
                         fds[i].fd = -1;
                         compress_array = true;
-                    }
+                    }    
                 }
             }
         }
@@ -197,6 +204,7 @@ int Server::Run() {
                 }
             }
         }
+        
     } while (run_server);
 
     auto end = std::chrono::system_clock::now();
@@ -210,7 +218,7 @@ void Server::LogJob(int job, std::string client_name) {
     double time = std::chrono::duration<double>(current_time.time_since_epoch()).count();
 
     std::stringstream stream;
-    if (job == -1) {
+    if (job != -1) {
         stream << "# ";
         stream << std::right << std::setw(3) << std::to_string(stats.job_count) << " ";
         stream << "(T" << std::right << std::setw(4) << std::to_string(job) << ") ";
@@ -223,6 +231,8 @@ void Server::LogJob(int job, std::string client_name) {
     }
 
     std::cout << std::fixed << std::setprecision(2) << time << ": " << stream.str() << std::endl;
+    std::cout << std::flush;
+    fflush(stdout);
 }
 
 void Server::UpdateStats(std::string machine) {
