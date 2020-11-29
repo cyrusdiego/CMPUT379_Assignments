@@ -78,15 +78,17 @@ help:
 # This ensures make will not complain if these files don't exist *yet*
 -include $(CLIENT_DEPENDENCIES) $(SERVER_DEPENDENCIES) $(COMMON_DEPENDENCIES)
 
-$(BIN_DIR)/$(CLIENT): $(CLIENT_OBJECTS) $(COMMON_OBJECTS) output.pdf
+$(BIN_DIR)/$(CLIENT): $(CLIENT_OBJECTS) $(COMMON_OBJECTS) 
 	@echo $(CXX) $(CXXFLAGS) $^ -o $@
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) $^ -o $@
+	@groff -Tpdf -man client.1 > client.pdf
 
-$(BIN_DIR)/$(SERVER): $(SERVER_OBJECTS) $(COMMON_OBJECTS)
+$(BIN_DIR)/$(SERVER): $(SERVER_OBJECTS) $(COMMON_OBJECTS) 
 	@echo $(CXX) $(CXXFLAGS) $^ -o $@
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) $^ -o $@
+	@groff -Tpdf -man client.1 > server.pdf
 
 # Compile source code to object files 
 # the -MMD flag will ensure that dependencies for the source files i.e. headers will be included
@@ -105,6 +107,4 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo $(CXX) $(CXXFLAGS) -MMD -c $< -o $@
 	@mkdir -p $(@D)
 	@$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
-
-output.pdf: client.1
-	@groff -Tpdf -man client.1 > output.pdf
+	
