@@ -11,6 +11,7 @@ INSTRUCTIONS:
     - man pages (client.pdf and server.pdf) will be produced in the root directory
     - server and client executables will be in the generated bin/ directory 
 - run "make clean" to delete the obj/ and bin/ directories AND the man pages 
+- run "make debug" to compile with the -g flag 
 
 ** Running **
 - client:
