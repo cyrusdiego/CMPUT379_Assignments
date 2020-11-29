@@ -102,12 +102,12 @@ int Server::Run() {
             return -1;
         }
         if (rc == 0) {
+            // Server timed out
             return 0;
         }
 
         int current_size = num_fds;
         for (int i = 0; i < current_size; i++) {
-            // if (fds[i].revents == 0) continue;
             bool connected = true;
 
             if (fds[i].revents == POLLERR || fds[i].revents == POLLNVAL) {
@@ -147,6 +147,7 @@ int Server::Run() {
                         return -1;
                     }
                     if (rc == 0) {
+                        // No message from client
                         continue;
                     }
 
