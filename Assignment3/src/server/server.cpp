@@ -16,7 +16,7 @@ Server::~Server() {
     double trans_per_sec = stats.job_count / stats.server_duration.count();
     stream << std::right << std::setprecision(2) << trans_per_sec;
     stream << " transaction/sec  (" << stats.job_count << "/" << std::setprecision(2) << stats.server_duration.count() << std::endl;
-    logger.PrintToScreen(stream.str());
+    std::cout << stream.str() << std::endl;
 
     close(server_fd);
 }
@@ -215,14 +215,14 @@ void Server::LogJob(int job, std::string client_name) {
         stream << std::right << std::setw(3) << std::to_string(stats.job_count) << " ";
         stream << "(T" << std::right << std::setw(4) << std::to_string(job) << ") ";
         stream << "from " << client_name;
-        logger.PrintToScreen(time, stream.str());
     } else {
         stream << "# ";
         stream << std::right << std::setw(3) << std::to_string(stats.job_count) << " ";
         stream << "(Done) from "
                << "from " << client_name;
-        logger.PrintToScreen(time, stream.str());
     }
+
+    std::cout << std::fixed << std::setprecision(2) << time << ": " << stream.str() << std::endl;
 }
 
 void Server::UpdateStats(std::string machine) {

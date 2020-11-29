@@ -37,11 +37,3 @@ void Logger::Log(std::string message) {
     output << message << std::flush;
     output.close();
 }
-
-void Logger::PrintToScreen(std::string message) {
-    std::cout << message << std::endl;
-}
-
-void Logger::PrintToScreen(double time, std::string message) {
-    std::cout << std::fixed << std::setprecision(2) << time << ": " << message;
-}

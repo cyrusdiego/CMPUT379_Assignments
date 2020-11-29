@@ -13,12 +13,9 @@ class Logger {
     void Log(std::string message, std::string col);
     void Log(std::string message);
     void SetTitle(std::string title);
-    void PrintToScreen(double time, std::string message);
-    void PrintToScreen(std::string message);
 
    private:
     std::string title;
-    bool hasInCol;
 };
 
 #endif
